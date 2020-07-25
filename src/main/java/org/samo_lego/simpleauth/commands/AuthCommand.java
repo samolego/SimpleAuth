@@ -2,13 +2,14 @@ package org.samo_lego.simpleauth.commands;
 
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
-import net.minecraft.command.arguments.BlockPosArgumentType;
-import net.minecraft.command.arguments.DimensionArgumentType;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
+import net.minecraft.command.arguments.BlockPosArgument;
+import net.minecraft.command.arguments.DimensionArgument;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.LiteralText;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.storage.AuthConfig;
 import org.samo_lego.simpleauth.storage.PlayerCache;
@@ -18,29 +19,27 @@ import java.io.File;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
 import static org.samo_lego.simpleauth.SimpleAuth.*;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logInfo;
 
 public class AuthCommand {
 
-    public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void registerCommand(CommandDispatcher<CommandSource> dispatcher) {
         // Registering the "/auth" command
-        dispatcher.register(literal("auth")
+        dispatcher.register(Commands.literal("auth")
             .requires(source -> source.hasPermissionLevel(4))
-            .then(literal("reload")
-                .executes( ctx -> reloadConfig(ctx.getSource()))
+            .then(Commands.literal("reload")
+                .executes( ctx -> reloadConfig((CommandSource) ctx.getSource()))
             )
-            .then(literal("setGlobalPassword")
-                    .then(argument("password", word())
+            .then(Commands.literal("setGlobalPassword")
+                    .then(Commands.argument("password", word())
                             .executes( ctx -> setGlobalPassword(
-                                    ctx.getSource(),
+                                    (CommandSource) ctx.getSource(),
                                     getString(ctx, "password")
                             ))
                     )
             )
-            .then(literal("setSpawn")
+            .then(Commands.literal("setSpawn")
                     .executes( ctx -> setSpawn(
                         ctx.getSource(),
                         ctx.getSource().getEntityOrThrow().getEntityWorld().getRegistryKey().getValue(),
@@ -48,42 +47,42 @@ public class AuthCommand {
                         ctx.getSource().getEntityOrThrow().getY(),
                         ctx.getSource().getEntityOrThrow().getZ()
                     ))
-                    .then(argument("dimension", DimensionArgumentType.dimension())
-                            .then(argument("position", BlockPosArgumentType.blockPos())
+                    .then(Commands.argument("dimension", DimensionArgument.dimension())
+                            .then(Commands.argument("position", BlockPosArgument.blockPos())
                                 .executes(ctx -> setSpawn(
                                         ctx.getSource(),
-                                        DimensionArgumentType.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue(),
-                                        BlockPosArgumentType.getLoadedBlockPos(ctx, "position").getX(),
+                                        DimensionArgument.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue(),
+                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getX(),
                                         // +1 to not spawn player in ground
-                                        BlockPosArgumentType.getLoadedBlockPos(ctx, "position").getY() + 1,
-                                        BlockPosArgumentType.getLoadedBlockPos(ctx, "position").getZ()
+                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getY() + 1,
+                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getZ()
                                 )
                             )
                         )
                     )
             )
-            .then(literal("remove")
-                .then(argument("uuid", word())
+            .then(Commands.literal("remove")
+                .then(Commands.argument("uuid", word())
                     .executes( ctx -> removeAccount(
                             ctx.getSource(),
                             getString(ctx, "uuid")
                     ))
                 )
             )
-            .then(literal("register")
-                .then(argument("uuid", word())
-                    .then(argument("password", word())
+            .then(Commands.literal("register")
+                .then(Commands.argument("uuid", word())
+                    .then(Commands.argument("password", word())
                         .executes( ctx -> registerUser(
-                                ctx.getSource(),
+                                (CommandSource) ctx.getSource(),
                                 getString(ctx, "uuid"),
                                 getString(ctx, "password")
                         ))
                     )
                 )
             )
-            .then(literal("update")
-                .then(argument("uuid", word())
-                    .then(argument("password", word())
+            .then(Commands.literal("update")
+                .then(Commands.argument("uuid", word())
+                    .then(Commands.argument("password", word())
                         .executes( ctx -> updatePass(
                                 ctx.getSource(),
                                 getString(ctx, "uuid"),
@@ -96,19 +95,19 @@ public class AuthCommand {
     }
 
     // Reloading the config
-    private static int reloadConfig(ServerCommandSource source) {
+    private static int reloadConfig(CommandSource source) {
         Entity sender = source.getEntity();
         config = AuthConfig.load(new File("./mods/SimpleAuth/config.json"));
 
         if(sender != null)
-            ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.configurationReloaded), false);
+            ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.configurationReloaded), false);
         else
             logInfo(config.lang.configurationReloaded);
         return 1;
     }
 
     // Setting global password
-    private static int setGlobalPassword(ServerCommandSource source, String pass) {
+    private static int setGlobalPassword(CommandSource source, String pass) {
         // Getting the player who send the command
         Entity sender = source.getEntity();
         // Different thread to avoid lag spikes
@@ -120,14 +119,14 @@ public class AuthCommand {
         });
 
         if(sender != null)
-            ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.globalPasswordSet), false);
+            ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.globalPasswordSet), false);
         else
             logInfo(config.lang.globalPasswordSet);
         return 1;
     }
 
     //
-    private static int setSpawn(ServerCommandSource source, Identifier world, double x, double y, double z) {
+    private static int setSpawn(CommandSource source, ResourceLocation world, double x, double y, double z) {
         // Setting config values and saving
         config.worldSpawn.dimension = String.valueOf(world);
         config.worldSpawn.x = x;
@@ -138,14 +137,14 @@ public class AuthCommand {
         // Getting sender
         Entity sender = source.getEntity();
         if(sender != null)
-            ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.worldSpawnSet), false);
+            ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.worldSpawnSet), false);
         else
             logInfo(config.lang.worldSpawnSet);
         return 1;
     }
 
     // Deleting (unregistering) user's account
-    private static int removeAccount(ServerCommandSource source, String uuid) {
+    private static int removeAccount(CommandSource source, String uuid) {
         Entity sender = source.getEntity();
         THREADPOOL.submit(() -> {
             DB.deleteUserData(uuid);
@@ -153,14 +152,14 @@ public class AuthCommand {
         });
 
         if(sender != null)
-            ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.userdataDeleted), false);
+            ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.userdataDeleted), false);
         else
             logInfo(config.lang.userdataDeleted);
         return 1; // Success
     }
 
     // Creating account for user
-    private static int registerUser(ServerCommandSource source, String uuid, String password) {
+    private static int registerUser(CommandSource source, String uuid, String password) {
         // Getting the player who send the command
         Entity sender = source.getEntity();
 
@@ -172,7 +171,7 @@ public class AuthCommand {
 
             if (DB.registerUser(uuid, playerdata.toString())) {
                 if (sender != null)
-                    ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.userdataUpdated), false);
+                    ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.userdataUpdated), false);
                 else
                     logInfo(config.lang.userdataUpdated);
             }
@@ -181,7 +180,7 @@ public class AuthCommand {
     }
 
     // Force-updating the user's password
-    private static int updatePass(ServerCommandSource source, String uuid, String password) {
+    private static int updatePass(CommandSource source, String uuid, String password) {
         // Getting the player who send the command
         Entity sender = source.getEntity();
 
@@ -193,7 +192,7 @@ public class AuthCommand {
 
             DB.updateUserData(uuid, playerdata.toString());
             if (sender != null)
-                ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.userdataUpdated), false);
+                ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.userdataUpdated), false);
             else
                 logInfo(config.lang.userdataUpdated);
         });

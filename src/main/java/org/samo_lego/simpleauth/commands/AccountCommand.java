@@ -1,7 +1,10 @@
 package org.samo_lego.simpleauth.commands;
 
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.SimpleAuth;
@@ -9,18 +12,16 @@ import org.samo_lego.simpleauth.utils.AuthHelper;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static com.mojang.brigadier.builder.LiteralArgumentBuilder.literal;
-import static com.mojang.brigadier.builder.RequiredArgumentBuilder.argument;
 import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
 import static org.samo_lego.simpleauth.SimpleAuth.config;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 public class AccountCommand {
 
-    public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void registerCommand(CommandDispatcher<CommandSource> dispatcher) {
         // Registering the "/account" command
-        dispatcher.register(literal("account")
-                .then(literal("unregister")
+        dispatcher.register(Commands.literal("account")
+                .then(Commands.literal("unregister")
                     .executes(ctx -> {
                         ctx.getSource().getPlayer().sendMessage(
                                 new StringTextComponent(config.lang.enterPassword),
@@ -28,7 +29,7 @@ public class AccountCommand {
                         );
                         return 1;
                     })
-                    .then(argument("password", word())
+                    .then(Commands.argument("password", word())
                             .executes( ctx -> unregister(
                                     ctx.getSource(),
                                     getString(ctx, "password")
@@ -36,17 +37,17 @@ public class AccountCommand {
                             )
                     )
                 )
-                .then(literal("changePassword")
-                    .then(argument("old password", word())
+                .then(Commands.literal("changePassword")
+                    .then(Commands.argument("old password", word())
                         .executes(ctx -> {
                             ctx.getSource().getPlayer().sendMessage(
                                     new StringTextComponent(config.lang.enterNewPassword),
                                     false);
                             return 1;
                         })
-                        .then(argument("new password", word())
+                        .then(Commands.argument("new password", word())
                                 .executes( ctx -> changePassword(
-                                        ctx.getSource(),
+                                        (CommandSource) ctx.getSource(),
                                         getString(ctx, "old password"),
                                         getString(ctx, "new password")
                                         )
@@ -58,7 +59,7 @@ public class AccountCommand {
     }
 
     // Method called for checking the password and then removing user's account from db
-    private static int unregister(ServerCommandSource source, String pass) throws CommandSyntaxException {
+    private static int unregister(CommandSource source, String pass) throws CommandSyntaxException {
         // Getting the player who send the command
         ServerPlayerEntity player = source.getPlayer();
 
@@ -90,7 +91,7 @@ public class AccountCommand {
     }
 
     // Method called for checking the password and then changing it
-    private static int changePassword(ServerCommandSource source, String oldPass, String newPass) throws CommandSyntaxException {
+    private static int changePassword(CommandSource source, String oldPass, String newPass) throws CommandSyntaxException {
         // Getting the player who send the command
         ServerPlayerEntity player = source.getPlayer();
 

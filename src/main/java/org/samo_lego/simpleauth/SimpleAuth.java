@@ -1,10 +1,13 @@
 package org.samo_lego.simpleauth;
 
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
@@ -72,7 +75,7 @@ public class SimpleAuth {
 		// Info I guess :D
 		logInfo("SimpleAuth mod by samo_lego.");
 		// The support on discord was great! I really appreciate your help.
-		logInfo("This mod wouldn't exist without the awesome Fabric Community. TYSM guys!");
+		logInfo("This mod wouldn't exist without the great Fabric and Forge communities!");
 
 		// Creating data directory (database and config files are stored there)
 		File file = new File(gameDirectory + "/mods/SimpleAuth/leveldbStore");
@@ -91,13 +94,13 @@ public class SimpleAuth {
 
 
 		// Registering the commands
-		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
-			RegisterCommand.registerCommand(dispatcher);
-			LoginCommand.registerCommand(dispatcher);
-			LogoutCommand.registerCommand(dispatcher);
-			AuthCommand.registerCommand(dispatcher);
-			AccountCommand.registerCommand(dispatcher);
-		});
+		CommandDispatcher<CommandSource> dispatcher = event.getCommandDispatcher();
+
+		RegisterCommand.registerCommand(dispatcher);
+		LoginCommand.registerCommand(dispatcher);
+		LogoutCommand.registerCommand(dispatcher);
+		AccountCommand.registerCommand(dispatcher);
+		AuthCommand.registerCommand(dispatcher);
 	}
 
 	@SubscribeEvent
@@ -212,8 +215,9 @@ public class SimpleAuth {
 		// registry for dimensions
 		if (toSpawn) {
 			// Teleports player to spawn
+			//field_239699_ae_ --> DIMENSION
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.DIMENSION_TYPE_KEY, new Identifier(config.worldSpawn.dimension))),
+					server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(config.worldSpawn.dimension))),
 					config.worldSpawn.x,
 					config.worldSpawn.y,
 					config.worldSpawn.z,
@@ -226,7 +230,7 @@ public class SimpleAuth {
 		// Puts player to last cached position
 		try {
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.DIMENSION_TYPE_KEY, new Identifier(cache.lastDim))),
+					server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(cache.lastDim))),
 					cache.lastX,
 					cache.lastY,
 					cache.lastZ,

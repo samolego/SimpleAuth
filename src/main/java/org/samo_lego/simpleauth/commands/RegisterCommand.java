@@ -3,16 +3,15 @@ package org.samo_lego.simpleauth.commands;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
+import net.minecraft.command.CommandSource;
+import net.minecraft.command.Commands;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.utils.AuthHelper;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
 import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
 import static org.samo_lego.simpleauth.SimpleAuth.config;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
@@ -20,45 +19,45 @@ import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 public class RegisterCommand {
 
-    public static void registerCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void registerCommand(CommandDispatcher<CommandSource> dispatcher) {
 
         // Registering the "/register" command
-        dispatcher.register(literal("register")
-            .then(argument("password", word())
-                .then(argument("passwordAgain", word())
-                    .executes( ctx -> register(ctx.getSource(), getString(ctx, "password"), getString(ctx, "passwordAgain")))
+        dispatcher.register(Commands.literal("register")
+            .then(Commands.argument("password", word())
+                .then(Commands.argument("passwordAgain", word())
+                    .executes( ctx -> register((CommandSource) ctx.getSource(), getString(ctx, "password"), getString(ctx, "passwordAgain")))
             ))
         .executes(ctx -> {
-            ctx.getSource().getPlayer().sendMessage(new LiteralText(config.lang.enterPassword), false);
+            ctx.getSource().getPlayer().sendMessage(new StringTextComponent(config.lang.enterPassword), false);
             return 0;
         }));
     }
 
     // Method called for hashing the password & writing to DB
-    private static int register(ServerCommandSource source, String pass1, String pass2) throws CommandSyntaxException {
+    private static int register(CommandSource source, String pass1, String pass2) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayer();
         if(config.main.enableGlobalPassword) {
-            player.sendMessage(new LiteralText(config.lang.loginRequired), false);
+            player.sendMessage(new StringTextComponent(config.lang.loginRequired), false);
             return 0;
         }
         else if(SimpleAuth.isAuthenticated(player)) {
-            player.sendMessage(new LiteralText(config.lang.alreadyAuthenticated), false);
+            player.sendMessage(new StringTextComponent(config.lang.alreadyAuthenticated), false);
             return 0;
         }
         else if(!pass1.equals(pass2)) {
-            player.sendMessage(new LiteralText(config.lang.matchPassword), false);
+            player.sendMessage(new StringTextComponent(config.lang.matchPassword), false);
             return 0;
         }
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
             if(pass1.length() < config.main.minPasswordChars) {
-                player.sendMessage(new LiteralText(
+                player.sendMessage(new StringTextComponent(
                         String.format(config.lang.minPasswordChars, config.main.minPasswordChars)
                 ), false);
                 return;
             }
             else if(pass1.length() > config.main.maxPasswordChars && config.main.maxPasswordChars != -1) {
-                player.sendMessage(new LiteralText(
+                player.sendMessage(new StringTextComponent(
                         String.format(config.lang.maxPasswordChars, config.main.maxPasswordChars)
                 ), false);
                 return;
@@ -69,10 +68,10 @@ public class RegisterCommand {
             playerdata.addProperty("password", hash);
 
             if (SimpleAuth.DB.registerUser(convertUuid(player), playerdata.toString())) {
-                SimpleAuth.authenticatePlayer(player, new LiteralText(config.lang.registerSuccess));
+                SimpleAuth.authenticatePlayer(player, new StringTextComponent(config.lang.registerSuccess));
                 return;
             }
-            player.sendMessage(new LiteralText(config.lang.alreadyRegistered), false);
+            player.sendMessage(new StringTextComponent(config.lang.alreadyRegistered), false);
         });
         return 0;
     }
