@@ -4,11 +4,11 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.play.server.SChangeBlockPacket;
 import net.minecraft.server.management.PlayerList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
-import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
@@ -20,7 +20,6 @@ import net.minecraftforge.fml.common.Mod;
 import org.samo_lego.simpleauth.mixin.BlockUpdateS2CPacketAccessor;
 import org.samo_lego.simpleauth.storage.PlayerCache;
 
-import java.net.SocketAddress;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,7 +36,7 @@ public class AuthEventHandler {
 
     // Player pre-join
     // Returns text as a reason for disconnect or null to pass
-    public static ITextComponent checkCanPlayerJoinServer(SocketAddress socketAddress, GameProfile profile, PlayerList manager) {
+    public static ITextComponent checkCanPlayerJoinServer(GameProfile profile, PlayerList manager) {
         // Getting the player
         String incomingPlayerUsername = profile.getName();
         PlayerEntity onlinePlayer = manager.getPlayer(incomingPlayerUsername);
@@ -105,12 +104,13 @@ public class AuthEventHandler {
             BlockPos pos = player.getBlockPos();
 
             // Faking portal blocks to be air
-            BlockUpdateS2CPacket feetPacket = new BlockUpdateS2CPacket();
+
+            SChangeBlockPacket feetPacket = new SChangeBlockPacket();
             ((BlockUpdateS2CPacketAccessor) feetPacket).setState(Blocks.field_150350_a.getDefaultState());
             ((BlockUpdateS2CPacketAccessor) feetPacket).setBlockPos(pos);
             player.networkHandler.sendPacket(feetPacket);
 
-            BlockUpdateS2CPacket headPacket = new BlockUpdateS2CPacket();
+            SChangeBlockPacket headPacket = new SChangeBlockPacket();
             ((BlockUpdateS2CPacketAccessor) headPacket).setState(Blocks.field_150350_a.getDefaultState());
             ((BlockUpdateS2CPacketAccessor) headPacket).setBlockPos(pos.up());
             player.networkHandler.sendPacket(headPacket);
@@ -168,8 +168,11 @@ public class AuthEventHandler {
     }
 
     @SubscribeEvent(priority = HIGHEST)
-    public static void onGuiOpen(GuiOpenEvent event) {
-        //ServerPlayerEntity player = event
+    public static void onContainerOpen(PlayerContainerEvent.Open event) {
+        PlayerEntity player = event.getPlayer();
+        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowMovement) {
+            event.setCanceled(true);
+        }
     }
 
     // Using a block (right-click function)

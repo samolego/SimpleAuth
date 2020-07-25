@@ -16,12 +16,12 @@ import java.net.SocketAddress;
 public abstract class MixinPlayerManager {
 
     // Method for kicking player for
-    @Inject(method = "Lnet/minecraft/server/management/PlayerList;checkCanJoin(Ljava/net/SocketAddress;Lcom/mojang/authlib/GameProfile;)Lnet/minecraft/util/text/ITextComponent;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "Lnet/minecraft/server/management/PlayerList;checkCanJoin(Ljava/net/SocketAddress;Lcom/mojang/authlib/GameProfile;)Lnet/minecraft/util/text/ITextComponent;", at = @At("HEAD"), cancellable = true, remap = false)
     private void checkCanJoin(SocketAddress socketAddress, GameProfile profile, CallbackInfoReturnable<ITextComponent> cir) {
         // Getting the player that is trying to join the server
         PlayerList manager = (PlayerList) (Object) this;
 
-        StringTextComponent returnText = (StringTextComponent) AuthEventHandler.checkCanPlayerJoinServer(socketAddress, profile, manager);
+        StringTextComponent returnText = (StringTextComponent) AuthEventHandler.checkCanPlayerJoinServer(profile, manager);
 
         if(returnText != null) {
             // Canceling player joining with the returnText message

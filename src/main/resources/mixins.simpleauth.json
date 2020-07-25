@@ -5,9 +5,7 @@
   "mixins": [],
   "server": [
     "BlockUpdateS2CPacketAccessor",
-    "MixinPlayerManager",
-    "MixinServerPlayNetworkHandler",
-    "MixinSlot"
+    "MixinPlayerManager"
   ],
   "injectors": {
     "defaultRequire": 1

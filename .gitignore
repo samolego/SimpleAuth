@@ -22,3 +22,6 @@ bin/
 
 # Files from Forge MDK
 forge*changelog.txt
+
+# Fabric run folder
+run/

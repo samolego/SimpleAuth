@@ -13,6 +13,9 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
@@ -70,8 +73,18 @@ public class SimpleAuth {
 	// Mod config
 	public static AuthConfig config;
 
+	// Registering
+	public static IEventBus MOD_EVENT_BUS;
+	public SimpleAuth() {
+		/*MOD_EVENT_BUS = FMLJavaModLoadingContext.get().getModEventBus();
+		MOD_EVENT_BUS.addListener( this::onServerStarting);
+		MOD_EVENT_BUS.addListener( this::onStopServer);
+		MOD_EVENT_BUS.register(AuthEventHandler.class);*/
+		MinecraftForge.EVENT_BUS.register(this);
+	}
+
 	@SubscribeEvent
-	public void onServerStarting(FMLServerStartingEvent event) {
+	public static void onServerStarting(FMLServerStartingEvent event) {
 		// Info I guess :D
 		logInfo("SimpleAuth mod by samo_lego.");
 		// The support on discord was great! I really appreciate your help.
@@ -93,8 +106,13 @@ public class SimpleAuth {
 		}
 
 
-		// Registering the commands
-		CommandDispatcher<CommandSource> dispatcher = event.getCommandDispatcher();
+
+	}
+
+	// Registering the commands
+	@SubscribeEvent
+	public static void registerCommands(RegisterCommandsEvent event) {
+		CommandDispatcher<CommandSource> dispatcher = event.getDispatcher();
 
 		RegisterCommand.registerCommand(dispatcher);
 		LoginCommand.registerCommand(dispatcher);
@@ -104,7 +122,7 @@ public class SimpleAuth {
 	}
 
 	@SubscribeEvent
-	private void onStopServer(FMLServerStoppedEvent event) {
+	public static void onStopServer(FMLServerStoppedEvent event) {
 		logInfo("Shutting down SimpleAuth.");
 
 		WriteBatch batch = DB.getLevelDBStore().createWriteBatch();
