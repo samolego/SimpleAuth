@@ -31,10 +31,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -84,7 +81,7 @@ public class SimpleAuth {
 	}
 
 	@SubscribeEvent
-	public static void onServerStarting(FMLServerStartingEvent event) {
+	public static void onInitializeServer(FMLServerStartingEvent event) {
 		// Info I guess :D
 		logInfo("SimpleAuth mod by samo_lego.");
 		// The support on discord was great! I really appreciate your help.
@@ -104,8 +101,6 @@ public class SimpleAuth {
 		} catch (IOException e) {
 			logError("Error while reading server properties: " + e.getMessage());
 		}
-
-
 
 	}
 
@@ -235,7 +230,7 @@ public class SimpleAuth {
 			// Teleports player to spawn
 			//field_239699_ae_ --> DIMENSION
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(config.worldSpawn.dimension))),
+					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(config.worldSpawn.dimension)))),
 					config.worldSpawn.x,
 					config.worldSpawn.y,
 					config.worldSpawn.z,
@@ -248,7 +243,7 @@ public class SimpleAuth {
 		// Puts player to last cached position
 		try {
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(cache.lastDim))),
+					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(cache.lastDim)))),
 					cache.lastX,
 					cache.lastY,
 					cache.lastZ,

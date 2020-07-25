@@ -104,7 +104,6 @@ public class AuthEventHandler {
             BlockPos pos = player.getBlockPos();
 
             // Faking portal blocks to be air
-
             SChangeBlockPacket feetPacket = new SChangeBlockPacket();
             ((BlockUpdateS2CPacketAccessor) feetPacket).setState(Blocks.field_150350_a.getDefaultState());
             ((BlockUpdateS2CPacketAccessor) feetPacket).setBlockPos(pos);

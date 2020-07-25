@@ -15,7 +15,7 @@ import java.net.SocketAddress;
 @Mixin(PlayerList.class)
 public abstract class MixinPlayerManager {
 
-    // Method for kicking player for
+    // Kicking player if there's a player with the same name already online
     @Inject(method = "Lnet/minecraft/server/management/PlayerList;checkCanJoin(Ljava/net/SocketAddress;Lcom/mojang/authlib/GameProfile;)Lnet/minecraft/util/text/ITextComponent;", at = @At("HEAD"), cancellable = true, remap = false)
     private void checkCanJoin(SocketAddress socketAddress, GameProfile profile, CallbackInfoReturnable<ITextComponent> cir) {
         // Getting the player that is trying to join the server
