@@ -5,7 +5,6 @@
   "mixins": [],
   "server": [
     "BlockUpdateS2CPacketAccessor",
-    "MixinPlayerEntity",
     "MixinPlayerManager",
     "MixinServerPlayNetworkHandler",
     "MixinSlot"

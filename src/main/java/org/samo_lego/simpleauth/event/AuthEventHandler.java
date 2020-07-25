@@ -3,15 +3,20 @@ package org.samo_lego.simpleauth.event;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.TypedActionResult;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.server.management.PlayerList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.client.event.GuiOpenEvent;
+import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.PlayerContainerEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.samo_lego.simpleauth.mixin.BlockUpdateS2CPacketAccessor;
 import org.samo_lego.simpleauth.storage.PlayerCache;
 
@@ -19,6 +24,7 @@ import java.net.SocketAddress;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
 import static org.samo_lego.simpleauth.SimpleAuth.*;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
@@ -26,11 +32,12 @@ import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
  * This class will take care of actions players try to do,
  * and cancel them if they aren't authenticated
  */
+@Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class AuthEventHandler {
 
     // Player pre-join
     // Returns text as a reason for disconnect or null to pass
-    public static LiteralText checkCanPlayerJoinServer(SocketAddress socketAddress, GameProfile profile, PlayerManager manager) {
+    public static ITextComponent checkCanPlayerJoinServer(SocketAddress socketAddress, GameProfile profile, PlayerList manager) {
         // Getting the player
         String incomingPlayerUsername = profile.getName();
         PlayerEntity onlinePlayer = manager.getPlayer(incomingPlayerUsername);
@@ -41,17 +48,17 @@ public class AuthEventHandler {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(incomingPlayerUsername);
 
-        if((onlinePlayer != null && !isPlayerFake(onlinePlayer)) && config.experimental.disableAnotherLocationKick) {
+        if(onlinePlayer != null && config.experimental.disableAnotherLocationKick) {
             // Player needs to be kicked, since there's already a player with that name
             // playing on the server
-            return new LiteralText(
+            return new StringTextComponent(
                     String.format(
                             config.lang.playerAlreadyOnline, onlinePlayer.getName().asString()
                     )
             );
         }
         else if(!matcher.matches()) {
-            return new LiteralText(
+            return new StringTextComponent(
                     String.format(
                             config.lang.disallowedUsername, regex
                     )
@@ -62,10 +69,9 @@ public class AuthEventHandler {
 
 
     // Player joining the server
-    public static void onPlayerJoin(ServerPlayerEntity player) {
-        // If player is fake auth is not needed
-        if (isPlayerFake(player))
-            return;
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
         // Checking if session is still valid
         String uuid = convertUuid(player);
         PlayerCache playerCache = deauthenticatedUsers.getOrDefault(uuid, null);
@@ -93,20 +99,21 @@ public class AuthEventHandler {
 
 
         // Tries to rescue player from nether portal
-        if(config.main.tryPortalRescue && player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL)) {
+        //field_150427_aO --> NETHER_PORTAL
+        //field_150350_a --> AIR
+        if(config.main.tryPortalRescue && player.getBlockState().getBlock().equals(Blocks.field_150427_aO)) {
             BlockPos pos = player.getBlockPos();
 
             // Faking portal blocks to be air
             BlockUpdateS2CPacket feetPacket = new BlockUpdateS2CPacket();
-            ((BlockUpdateS2CPacketAccessor) feetPacket).setState(Blocks.AIR.getDefaultState());
+            ((BlockUpdateS2CPacketAccessor) feetPacket).setState(Blocks.field_150350_a.getDefaultState());
             ((BlockUpdateS2CPacketAccessor) feetPacket).setBlockPos(pos);
             player.networkHandler.sendPacket(feetPacket);
 
             BlockUpdateS2CPacket headPacket = new BlockUpdateS2CPacket();
-            ((BlockUpdateS2CPacketAccessor) headPacket).setState(Blocks.AIR.getDefaultState());
+            ((BlockUpdateS2CPacketAccessor) headPacket).setState(Blocks.field_150350_a.getDefaultState());
             ((BlockUpdateS2CPacketAccessor) headPacket).setBlockPos(pos.up());
             player.networkHandler.sendPacket(headPacket);
-            System.out.println(headPacket);
 
             // Teleporting player to the middle of the block
             player.teleport(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
@@ -114,8 +121,10 @@ public class AuthEventHandler {
         }
     }
 
-    public static void onPlayerLeave(ServerPlayerEntity player) {
-        if(isPlayerFake(player) || !isAuthenticated(player) || config.main.sessionTimeoutTime == -1)
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
+        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
+        if(!isAuthenticated(player) || config.main.sessionTimeoutTime == -1)
             return;
 
         // Starting session
@@ -133,9 +142,11 @@ public class AuthEventHandler {
     }
 
     // Player chatting
-    public static ActionResult onPlayerChat(PlayerEntity player, ChatMessageC2SPacket chatMessageC2SPacket) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onPlayerChat(ServerChatEvent event) {
+        ServerPlayerEntity player = event.getPlayer();
         // Getting the message to then be able to check it
-        String msg = chatMessageC2SPacket.getChatMessage();
+        String msg = event.getMessage();
         if(
             !isAuthenticated((ServerPlayerEntity) player) &&
             !msg.startsWith("/login") &&
@@ -143,79 +154,89 @@ public class AuthEventHandler {
             (!config.experimental.allowChat || msg.startsWith("/"))
         ) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-        return ActionResult.PASS;
     }
 
     // Player movement
-    public static ActionResult onPlayerMove(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onPlayerMove(PlayerEvent event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowMovement) {
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-        return ActionResult.PASS;
+    }
+
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onGuiOpen(GuiOpenEvent event) {
+        //ServerPlayerEntity player = event
     }
 
     // Using a block (right-click function)
-    public static ActionResult onUseBlock(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onUseBlock(PlayerInteractEvent.RightClickBlock event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowBlockUse) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-        return ActionResult.PASS;
     }
 
     // Punching a block
-    public static ActionResult onAttackBlock(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onAttackBlock(PlayerInteractEvent.LeftClickBlock event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowBlockPunch) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-        return ActionResult.PASS;
     }
 
     // Using an item
-    public static TypedActionResult<ItemStack> onUseItem(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onUseItem(PlayerInteractEvent.RightClickItem event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemUse) {
             player.sendMessage(notAuthenticated(player), false);
-            return TypedActionResult.fail(ItemStack.EMPTY);
+            //fail
         }
-
-        return TypedActionResult.pass(ItemStack.EMPTY);
     }
+
     // Dropping an item
-    public static ActionResult onDropItem(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onDropItem(ItemTossEvent event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemDrop) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-        return ActionResult.PASS;
     }
     // Changing inventory (item moving etc.)
-    public static ActionResult onTakeItem(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onTakeItem(PlayerContainerEvent event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemMoving) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-
-        return ActionResult.PASS;
     }
+
     // Attacking an entity
-    public static ActionResult onAttackEntity(PlayerEntity player) {
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onAttackEntity(AttackEntityEvent event) {
+        PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowEntityPunch) {
             player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
+            event.setCanceled(true);
         }
-
-        return ActionResult.PASS;
     }
-    // Interacting with entity
-    public static ActionResult onUseEntity(PlayerEntity player) {
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.main.allowEntityInteract) {
-            player.sendMessage(notAuthenticated(player), false);
-            return ActionResult.FAIL;
-        }
 
-        return ActionResult.PASS;
+    // Interacting with entity
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onUseEntity(PlayerInteractEvent.EntityInteract event) {
+        PlayerEntity player = event.getPlayer();        if(!isAuthenticated((ServerPlayerEntity) player) && !config.main.allowEntityInteract) {
+            player.sendMessage(notAuthenticated(player), false);
+            event.setCanceled(true);
+        }
     }
 }

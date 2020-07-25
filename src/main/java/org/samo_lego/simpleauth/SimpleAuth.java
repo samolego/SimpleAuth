@@ -1,27 +1,22 @@
 package org.samo_lego.simpleauth;
 
 import com.google.gson.JsonObject;
-import net.fabricmc.api.DedicatedServerModInitializer;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.player.*;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
+import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.iq80.leveldb.WriteBatch;
 import org.samo_lego.simpleauth.commands.*;
-import org.samo_lego.simpleauth.event.AuthEventHandler;
-import org.samo_lego.simpleauth.event.entity.player.*;
-import org.samo_lego.simpleauth.event.item.DropItemCallback;
-import org.samo_lego.simpleauth.event.item.TakeItemCallback;
 import org.samo_lego.simpleauth.storage.AuthConfig;
 import org.samo_lego.simpleauth.storage.PlayerCache;
 import org.samo_lego.simpleauth.storage.SimpleAuthDatabase;
@@ -38,12 +33,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.bytes;
-import static org.samo_lego.simpleauth.utils.CarpetHelper.isPlayerCarpetFake;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logError;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logInfo;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
-public class SimpleAuth implements DedicatedServerModInitializer {
+
+@Mod(SimpleAuth.MODID)
+public class SimpleAuth {
+
+	public static final String MODID = "simpleauth";
 
     public static SimpleAuthDatabase DB = new SimpleAuthDatabase();
 
@@ -61,7 +59,7 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 	}
 
 	// Getting game directory
-	public static final Path gameDirectory = FabricLoader.getInstance().getGameDir();
+	public static final Path gameDirectory = FMLPaths.GAMEDIR.get();
 
 	// Server properties
 	public static Properties serverProp = new Properties();
@@ -69,8 +67,8 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 	// Mod config
 	public static AuthConfig config;
 
-	@Override
-	public void onInitializeServer() {
+	@SubscribeEvent
+	public void onServerStarting(FMLServerStartingEvent event) {
 		// Info I guess :D
 		logInfo("SimpleAuth mod by samo_lego.");
 		// The support on discord was great! I really appreciate your help.
@@ -100,26 +98,10 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 			AuthCommand.registerCommand(dispatcher);
 			AccountCommand.registerCommand(dispatcher);
 		});
-
-		// Registering the events
-		PrePlayerJoinCallback.EVENT.register(AuthEventHandler::checkCanPlayerJoinServer);
-		PlayerJoinServerCallback.EVENT.register(AuthEventHandler::onPlayerJoin);
-		PlayerLeaveServerCallback.EVENT.register(AuthEventHandler::onPlayerLeave);
-		DropItemCallback.EVENT.register(AuthEventHandler::onDropItem);
-		TakeItemCallback.EVENT.register(AuthEventHandler::onTakeItem);
-		ChatCallback.EVENT.register(AuthEventHandler::onPlayerChat);
-		PlayerMoveCallback.EVENT.register(AuthEventHandler::onPlayerMove);
-
-		// From Fabric API
-		AttackBlockCallback.EVENT.register((playerEntity, world, hand, blockPos, direction) -> AuthEventHandler.onAttackBlock(playerEntity));
-        UseBlockCallback.EVENT.register((player, world, hand, blockHitResult) -> AuthEventHandler.onUseBlock(player));
-        UseItemCallback.EVENT.register((player, world, hand) -> AuthEventHandler.onUseItem(player));
-        AttackEntityCallback.EVENT.register((player, world, hand, entity, entityHitResult) -> AuthEventHandler.onAttackEntity(player));
-		UseEntityCallback.EVENT.register((player, world, hand, entity, entityHitResult) -> AuthEventHandler.onUseEntity(player));
-		ServerLifecycleEvents.SERVER_STOPPED.register(minecraftServer -> this.onStopServer());
 	}
 
-	private void onStopServer() {
+	@SubscribeEvent
+	private void onStopServer(FMLServerStoppedEvent event) {
 		logInfo("Shutting down SimpleAuth.");
 
 		WriteBatch batch = DB.getLevelDBStore().createWriteBatch();
@@ -151,19 +133,19 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 	}
 
 	// Getting not authenticated text
-	public static LiteralText notAuthenticated(PlayerEntity player) {
+	public static ITextComponent notAuthenticated(PlayerEntity player) {
         final PlayerCache cache = deauthenticatedUsers.get(convertUuid(player));
         if(SimpleAuth.config.main.enableGlobalPassword || cache.isRegistered)
-			return new LiteralText(
+			return new StringTextComponent(
 			        SimpleAuth.config.lang.notAuthenticated + "\n" + SimpleAuth.config.lang.loginRequired
             );
-		return new LiteralText(
+		return new StringTextComponent(
 		        SimpleAuth.config.lang.notAuthenticated+ "\n" + SimpleAuth.config.lang.registerRequired
         );
 	}
 
 	// Authenticates player and sends the message
-	public static void authenticatePlayer(ServerPlayerEntity player, Text msg) {
+	public static void authenticatePlayer(ServerPlayerEntity player, ITextComponent msg) {
 		// Teleporting player back
 		if(config.main.spawnOnJoin)
 			teleportPlayer(player, false);
@@ -216,16 +198,11 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 			public void run() {
 				// Kicking player if not authenticated
 				if(!SimpleAuth.isAuthenticated(player) && player.networkHandler.getConnection().isOpen())
-					player.networkHandler.disconnect(new LiteralText(SimpleAuth.config.lang.timeExpired));
+					player.networkHandler.disconnect(new StringTextComponent(SimpleAuth.config.lang.timeExpired));
 			}
 		}, SimpleAuth.config.main.delay * 1000);
 	}
 
-	// Checking is player is a fake (carpetmod) player
-	public static boolean isPlayerFake(PlayerEntity player) {
-		// We ask CarpetHelper class since it has the imports needed
-		return FabricLoader.getInstance().isModLoaded("carpet") && isPlayerCarpetFake(player);
-	}
 
 	// Teleports player to spawn or last location when authenticating
 	public static void teleportPlayer(ServerPlayerEntity player, boolean toSpawn) {
@@ -236,7 +213,7 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 		if (toSpawn) {
 			// Teleports player to spawn
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.DIMENSION, new Identifier(config.worldSpawn.dimension))),
+					server.getWorld(RegistryKey.of(Registry.DIMENSION_TYPE_KEY, new Identifier(config.worldSpawn.dimension))),
 					config.worldSpawn.x,
 					config.worldSpawn.y,
 					config.worldSpawn.z,
@@ -249,7 +226,7 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 		// Puts player to last cached position
 		try {
 			player.teleport(
-					server.getWorld(RegistryKey.of(Registry.DIMENSION, new Identifier(cache.lastDim))),
+					server.getWorld(RegistryKey.of(Registry.DIMENSION_TYPE_KEY, new Identifier(cache.lastDim))),
 					cache.lastX,
 					cache.lastY,
 					cache.lastZ,
@@ -257,7 +234,7 @@ public class SimpleAuth implements DedicatedServerModInitializer {
 					0
 			);
 		} catch (Error e) {
-			player.sendMessage(new LiteralText(config.lang.corruptedPlayerData), false);
+			player.sendMessage(new StringTextComponent(config.lang.corruptedPlayerData), false);
 			logError("Couldn't teleport player " + player.getName().asString());
 			logError(
 				String.format("Last recorded position is X: %s, Y: %s, Z: %s in dimension %s",

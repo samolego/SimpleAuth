@@ -1,18 +1,16 @@
 package org.samo_lego.simpleauth.commands;
 
 import com.google.gson.JsonObject;
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.utils.AuthHelper;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static com.mojang.brigadier.builder.LiteralArgumentBuilder.literal;
+import static com.mojang.brigadier.builder.RequiredArgumentBuilder.argument;
 import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
 import static org.samo_lego.simpleauth.SimpleAuth.config;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
@@ -25,7 +23,7 @@ public class AccountCommand {
                 .then(literal("unregister")
                     .executes(ctx -> {
                         ctx.getSource().getPlayer().sendMessage(
-                                new LiteralText(config.lang.enterPassword),
+                                new StringTextComponent(config.lang.enterPassword),
                                 false
                         );
                         return 1;
@@ -42,7 +40,7 @@ public class AccountCommand {
                     .then(argument("old password", word())
                         .executes(ctx -> {
                             ctx.getSource().getPlayer().sendMessage(
-                                    new LiteralText(config.lang.enterNewPassword),
+                                    new StringTextComponent(config.lang.enterNewPassword),
                                     false);
                             return 1;
                         })
@@ -66,7 +64,7 @@ public class AccountCommand {
 
         if (config.main.enableGlobalPassword) {
             player.sendMessage(
-                    new LiteralText(config.lang.cannotUnregister),
+                    new StringTextComponent(config.lang.cannotUnregister),
                     false
             );
             return 0;
@@ -77,14 +75,14 @@ public class AccountCommand {
             if (AuthHelper.checkPass(convertUuid(player), pass.toCharArray()) == 1) {
                 SimpleAuth.DB.deleteUserData(convertUuid(player));
                 player.sendMessage(
-                        new LiteralText(config.lang.accountDeleted),
+                        new StringTextComponent(config.lang.accountDeleted),
                         false
                 );
                 SimpleAuth.deauthenticatePlayer(player);
                 return;
             }
             player.sendMessage(
-                    new LiteralText(config.lang.wrongPassword),
+                    new StringTextComponent(config.lang.wrongPassword),
                     false
             );
         });
@@ -98,7 +96,7 @@ public class AccountCommand {
 
         if (config.main.enableGlobalPassword) {
             player.sendMessage(
-                    new LiteralText(config.lang.cannotChangePassword),
+                    new StringTextComponent(config.lang.cannotChangePassword),
                     false
             );
             return 0;
@@ -107,13 +105,13 @@ public class AccountCommand {
         THREADPOOL.submit(() -> {
             if (AuthHelper.checkPass(convertUuid(player), oldPass.toCharArray()) == 1) {
                 if (newPass.length() < config.main.minPasswordChars) {
-                    player.sendMessage(new LiteralText(
+                    player.sendMessage(new StringTextComponent(
                             String.format(config.lang.minPasswordChars, config.main.minPasswordChars)
                     ), false);
                     return;
                 }
                 else if (newPass.length() > config.main.maxPasswordChars && config.main.maxPasswordChars != -1) {
-                    player.sendMessage(new LiteralText(
+                    player.sendMessage(new StringTextComponent(
                             String.format(config.lang.maxPasswordChars, config.main.maxPasswordChars)
                     ), false);
                     return;
@@ -125,13 +123,13 @@ public class AccountCommand {
 
                 SimpleAuth.DB.updateUserData(convertUuid(player), playerdata.toString());
                 player.sendMessage(
-                        new LiteralText(config.lang.passwordUpdated),
+                        new StringTextComponent(config.lang.passwordUpdated),
                         false
                 );
             }
             else
                 player.sendMessage(
-                    new LiteralText(config.lang.wrongPassword),
+                    new StringTextComponent(config.lang.wrongPassword),
                     false
                 );
         });
