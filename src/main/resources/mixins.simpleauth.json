@@ -5,7 +5,8 @@
   "mixins": [],
   "server": [
     "BlockUpdateS2CPacketAccessor",
-    "MixinPlayerManager"
+    "MixinPlayerManager",
+    "MixinSlot"
   ],
   "injectors": {
     "defaultRequire": 1

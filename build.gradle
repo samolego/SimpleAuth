@@ -42,8 +42,8 @@ minecraft {
     // snapshot_YYYYMMDD   Snapshot are built nightly.
     // stable_#            Stables are built at the discretion of the MCP team.
 
-    mappings channel: 'stable', version: "yarn-${mc_version}"
-    //mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-mixed-${mc_version}"
+    //mappings channel: 'stable', version: "yarn-${mc_version}"
+    mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-yarn-${mc_version}"
     //mappings channel: 'snapshot', version: "20200726-yarn-${mc_version}"
 
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
