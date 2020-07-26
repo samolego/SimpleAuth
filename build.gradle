@@ -10,7 +10,7 @@ buildscript {
 			url = 'https://files.minecraftforge.net/maven'
 		}
         maven {
-            url='https://dist.creeper.host/Sponge/maven'
+            url = 'https://dist.creeper.host/Sponge/maven'
         }
         jcenter()
         mavenCentral()
@@ -18,12 +18,18 @@ buildscript {
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
 		classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
+
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
 // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
+
+apply plugin: 'com.github.johnrengelman.shadow'
+
+
 
 version = "${mod_version}"
 group = "${maven_group}.${modid}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
@@ -33,19 +39,17 @@ sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = co
 
 println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 minecraft {
-    // The mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   Snapshot are built nightly.
     // stable_#            Stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
-	
+
     mappings channel: 'stable', version: "yarn-${mc_version}"
+    //mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-mixed-${mc_version}"
+    //mappings channel: 'snapshot', version: "20200726-yarn-${mc_version}"
+
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
     
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
     runs {
         client {
             workingDirectory project.file('run')
@@ -57,7 +61,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             mods {
-                examplemod {
+                simpleauth {
                     source sourceSets.main
                 }
             }
@@ -74,7 +78,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
 
             mods {
-                examplemod {
+                simpleauth {
                     source sourceSets.main
                 }
             }
@@ -83,16 +87,13 @@ minecraft {
         data {
             workingDirectory project.file('run')
 
-            // Recommended logging data for a userdev environment
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
 
             args '--mod', 'examplemod', '--all', '--output', file('src/generated/resources/')
 
             mods {
-                examplemod {
+                simpleauth {
                     source sourceSets.main
                 }
             }
@@ -100,32 +101,39 @@ minecraft {
     }
 }
 
+
 dependencies {
-    // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
-    // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
-    // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
 
-    // You may put jars on which you depend on in ./libs or you may define them like so..
-    // compile "some.group:artifact:version:classifier"
-    // compile "some.group:artifact:version"
-
-    // Real examples
-
     // Argon2 library for password hashing
-    compile 'de.mkammerer:argon2-jvm:2.6'
-    //include 'de.mkammerer:argon2-jvm:2.6'
+    shadow 'de.mkammerer:argon2-jvm:2.6'
 
     // leveldb
-    compile group: 'org.iq80.leveldb', name: 'leveldb', version: '0.12'
-    compile group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.12'
-    //include group: 'org.iq80.leveldb', name: 'leveldb', version: '0.12'
-    //include group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.12'
-
+    shadow group: 'org.iq80.leveldb', name: 'leveldb', version: '0.12'
+    shadow group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.12'
+    //shadow 'org.iq80.leveldb:leveldb:0.12'
+    //shadow 'org.iq80.leveldb:leveldb-api:0.12'
 
     // JNA lib
-    //include 'net.java.dev.jna:jna:5.5.0'
+    shadow 'net.java.dev.jna:jna:5.5.0'
 
+}
+
+shadowJar {
+    project.configurations.shadow.setTransitive(true);
+    configurations = [project.configurations.shadow]
+
+    classifier '' // Replace the default JAR
+}
+
+reobf {
+    shadowJar {} // Reobfuscate the shadowed JAR
+}
+
+sourceSets {
+    main {
+        ext.refMap =  "${modid}.refmap.json"
+    }
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
@@ -134,15 +142,16 @@ jar {
         attributes([
             "Specification-Title": "${modid}",
             "Specification-Vendor": "samo_lego",
-            "Specification-Version": "${mod_version}", // We are version 1 of ourselves
+            "Specification-Version": "${mod_version}",
             "Implementation-Title": project.name,
             "Implementation-Version": "${version}",
-            "Implementation-Vendor" :"examplemodsareus",
+            "Implementation-Vendor" :"samo_lego",
             "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
 			"MixinConfigs": "mixins.${modid}.json"
         ])
     }
 }
+
 
 // Example configuration to allow publishing using the maven-publish task
 // This is the preferred method to reobfuscate your jar file
@@ -162,8 +171,3 @@ publishing {
         }
     }
 }
-/*
-mixin {
-    add sourceSets.main, "${modid}.refmap.json"
-}
-*/
