@@ -156,12 +156,13 @@ public class SimpleAuth {
 
 	// Authenticates player and sends the message
 	public static void authenticatePlayer(ServerPlayerEntity player, ITextComponent msg) {
+		PlayerCache playerCache = deauthenticatedUsers.get(convertUuid(player));
 		// Teleporting player back
 		if(config.main.spawnOnJoin)
 			teleportPlayer(player, false);
 
 		// Updating blocks if needed (if portal rescue action happened)
-		if(deauthenticatedUsers.get(convertUuid(player)).wasInPortal) {
+		if(playerCache.wasInPortal) {
 			World world = player.getEntityWorld();
 			BlockPos pos = player.getBlockPos();
 
@@ -173,7 +174,7 @@ public class SimpleAuth {
 
 		// Setting last air to player
 		if(player.isSubmergedInWater())
-			player.setAir(deauthenticatedUsers.get(convertUuid(player)).lastAir);
+			player.setAir(playerCache.lastAir);
 
 		deauthenticatedUsers.remove(convertUuid(player));
 
