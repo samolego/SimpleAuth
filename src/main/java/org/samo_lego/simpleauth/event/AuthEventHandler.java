@@ -1,10 +1,13 @@
 package org.samo_lego.simpleauth.event;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.block.Blocks;
+import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.play.server.SChangeBlockPacket;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
@@ -19,7 +22,6 @@ import org.samo_lego.simpleauth.storage.PlayerCache;
 
 import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
 import static org.samo_lego.simpleauth.SimpleAuth.*;
-import static org.samo_lego.simpleauth.utils.SimpleLogger.logInfo;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 /**
@@ -43,8 +45,7 @@ public class AuthEventHandler {
                 playerCache.validUntil >= System.currentTimeMillis() &&
                 player.getIp().equals(playerCache.lastIp)
             ) {
-                logInfo("Player has a valid session");
-                deauthenticatedUsers.remove(uuid); // Makes player authenticated
+                authenticatePlayer(player, null); // Makes player authenticated
                 return;
             }
             // Invalidating session
@@ -107,19 +108,32 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerChat(ServerChatEvent event) {
         ServerPlayerEntity player = event.getPlayer();
-        // Getting the message to then be able to check it
-        String msg = event.getMessage();
-        if(
-            !isAuthenticated(player) &&
-            !msg.startsWith("/login") &&
-            !msg.startsWith("/register") &&
-            (!config.experimental.allowChat || msg.startsWith("/"))
-        ) {
+        if(!isAuthenticated(player) && !config.experimental.allowChat) {
             player.sendMessage(notAuthenticated(player), false);
             event.setCanceled(true);
         }
-    } //todo commands
+    }
 
+    // Player commands
+    @SubscribeEvent(priority = HIGHEST)
+    public static void onPlayerCommand(CommandEvent event) throws CommandSyntaxException {
+        try {
+            String name = event.getParseResults().getContext().getNodes().get(0).getNode().getName();
+            CommandSource src = event.getParseResults().getContext().getSource();
+
+            if(src.getEntity() instanceof ServerPlayerEntity) {
+                ServerPlayerEntity player = src.getPlayer();
+                if(
+                        !isAuthenticated(player) &&
+                                !name.startsWith("login") &&
+                                !name.startsWith("register")
+                ) {
+                    player.sendMessage(notAuthenticated(player), false);
+                    event.setCanceled(true);
+                }
+            }
+        } catch (Error ignored) { }
+    }
 
     // Player movement
     @SubscribeEvent(priority = HIGHEST)
