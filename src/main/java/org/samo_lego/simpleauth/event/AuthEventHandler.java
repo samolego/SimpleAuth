@@ -49,8 +49,8 @@ public class AuthEventHandler {
                 return;
             }
             // Ugly fix for #13
-            player.setInvulnerable(SimpleAuth.config.experimental.playerInvulnerable);
-            player.setInvisible(SimpleAuth.config.experimental.playerInvisible);
+            player.setInvulnerable(config.experimental.playerInvulnerable);
+            player.setInvisible(config.experimental.playerInvisible);
 
             // Invalidating session
             playerCache.wasAuthenticated = false;

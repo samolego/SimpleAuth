@@ -147,12 +147,12 @@ public class SimpleAuth {
 	// Getting not authenticated text
 	public static ITextComponent notAuthenticated(PlayerEntity player) {
         final PlayerCache cache = deauthenticatedUsers.get(convertUuid(player));
-        if(SimpleAuth.config.main.enableGlobalPassword || cache.isRegistered)
+        if(config.main.enableGlobalPassword || cache.isRegistered)
 			return new StringTextComponent(
-			        SimpleAuth.config.lang.notAuthenticated + "\n" + SimpleAuth.config.lang.loginRequired
+			        config.lang.notAuthenticated + "\n" + config.lang.loginRequired
             );
 		return new StringTextComponent(
-		        SimpleAuth.config.lang.notAuthenticated+ "\n" + SimpleAuth.config.lang.registerRequired
+		        config.lang.notAuthenticated+ "\n" + config.lang.registerRequired
         );
 	}
 
@@ -207,8 +207,8 @@ public class SimpleAuth {
 		player.sendMessage(notAuthenticated(player), false);
 
 		// Setting the player to be invisible to mobs and also invulnerable
-		player.setInvulnerable(SimpleAuth.config.experimental.playerInvulnerable);
-		player.setInvisible(SimpleAuth.config.experimental.playerInvisible);
+		player.setInvulnerable(config.experimental.playerInvulnerable);
+		player.setInvisible(config.experimental.playerInvisible);
 
 		// Timer should start only if player has joined, not left the server (in case os session)
 		if(player.networkHandler.getConnection().isOpen())
@@ -217,18 +217,18 @@ public class SimpleAuth {
 				public void run() {
 					// Kicking player if not authenticated
 					if(!isAuthenticated(player) && player.networkHandler.getConnection().isOpen())
-						player.networkHandler.disconnect(new StringTextComponent(SimpleAuth.config.lang.timeExpired));
+						player.networkHandler.disconnect(new StringTextComponent(config.lang.timeExpired));
 				}
-			}, SimpleAuth.config.main.delay * 1000);
+			}, config.main.delay * 1000);
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask() {
 			@Override
 			public void run() {
 				// Kicking player if not authenticated
 				if(!SimpleAuth.isAuthenticated(player) && player.networkHandler.getConnection().isOpen())
-					player.networkHandler.disconnect(new StringTextComponent(SimpleAuth.config.lang.timeExpired));
+					player.networkHandler.disconnect(new StringTextComponent(config.lang.timeExpired));
 			}
-		}, SimpleAuth.config.main.delay * 1000);
+		}, config.main.delay * 1000);
 	}
 
 
