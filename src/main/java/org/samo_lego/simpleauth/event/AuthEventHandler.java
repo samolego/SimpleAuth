@@ -48,6 +48,10 @@ public class AuthEventHandler {
                 authenticatePlayer(player, null); // Makes player authenticated
                 return;
             }
+            // Ugly fix for #13
+            player.setInvulnerable(SimpleAuth.config.experimental.playerInvulnerable);
+            player.setInvisible(SimpleAuth.config.experimental.playerInvisible);
+
             // Invalidating session
             playerCache.wasAuthenticated = false;
             player.sendMessage(notAuthenticated(player), false);

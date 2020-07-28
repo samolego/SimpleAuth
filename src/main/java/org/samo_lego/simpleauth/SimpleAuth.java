@@ -49,6 +49,8 @@ public class SimpleAuth {
 
 	public static final ExecutorService THREADPOOL = Executors.newCachedThreadPool();
 
+	private static final Timer TIMER = new Timer();
+
 	// HashMap of players that are not authenticated
 	// Rather than storing all the authenticated players, we just store ones that are not authenticated
 	// It stores some data as well, e.g. login tries and user password
@@ -176,6 +178,10 @@ public class SimpleAuth {
 		if(player.isSubmergedInWater())
 			player.setAir(playerCache.lastAir);
 
+		// In case player is in lava during authentication proccess
+		if(!playerCache.wasOnFire)
+			player.setFireTicks(0);
+
 		deauthenticatedUsers.remove(convertUuid(player));
 
 		// Player no longer needs to be invisible and invulnerable
@@ -189,9 +195,9 @@ public class SimpleAuth {
 		if(DB.isClosed())
 			return;
 
-		// Marking player as not authenticated, (re)setting login tries to zero
+		// Marking player as not authenticated
 		String uuid = convertUuid(player);
-		SimpleAuth.deauthenticatedUsers.put(uuid, new PlayerCache(uuid, player));
+		deauthenticatedUsers.put(uuid, new PlayerCache(uuid, player));
 
 		// Teleporting player to spawn to hide its position
 		if(config.main.spawnOnJoin)
@@ -203,6 +209,17 @@ public class SimpleAuth {
 		// Setting the player to be invisible to mobs and also invulnerable
 		player.setInvulnerable(SimpleAuth.config.experimental.playerInvulnerable);
 		player.setInvisible(SimpleAuth.config.experimental.playerInvisible);
+
+		// Timer should start only if player has joined, not left the server (in case os session)
+		if(player.networkHandler.getConnection().isOpen())
+			TIMER.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					// Kicking player if not authenticated
+					if(!isAuthenticated(player) && player.networkHandler.getConnection().isOpen())
+						player.networkHandler.disconnect(new StringTextComponent(SimpleAuth.config.lang.timeExpired));
+				}
+			}, SimpleAuth.config.main.delay * 1000);
 		Timer timer = new Timer();
 		timer.schedule(new TimerTask() {
 			@Override
@@ -220,7 +237,7 @@ public class SimpleAuth {
 		MinecraftServer server = player.getServer();
 		if(server == null || config.worldSpawn.dimension == null)
 			return;
-		// registry for dimensions
+
 		if (toSpawn) {
 			// Teleports player to spawn
 			//field_239699_ae_ --> DIMENSION
