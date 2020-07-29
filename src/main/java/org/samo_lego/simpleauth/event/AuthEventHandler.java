@@ -59,6 +59,7 @@ public class AuthEventHandler {
         else {
             deauthenticatePlayer(player);
             playerCache = deauthenticatedUsers.get(uuid);
+            playerCache.wasOnFire = false;
         }
 
         if(config.main.spawnOnJoin)

@@ -47,7 +47,7 @@ minecraft {
     //mappings channel: 'snapshot', version: "20200726-yarn-${mc_version}"
 
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
-    
+
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
@@ -105,14 +105,19 @@ minecraft {
 dependencies {
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
 
-    // Argon2 library for password hashing
-    shadow 'de.mkammerer:argon2-jvm:2.6'
 
+	// Password hashing
+    // Argon2
+	shadow "de.mkammerer:argon2-jvm:${argon2_version}"
+
+	// BCrypt
+	shadow "at.favre.lib:bcrypt:${bcrypt_version}"
+	shadow "at.favre.lib:bytes:${bytes_version}"
+
+	// Storage
     // leveldb
     shadow group: 'org.iq80.leveldb', name: 'leveldb', version: '0.12'
     shadow group: 'org.iq80.leveldb', name: 'leveldb-api', version: '0.12'
-    //shadow 'org.iq80.leveldb:leveldb:0.12'
-    //shadow 'org.iq80.leveldb:leveldb-api:0.12'
 
     // JNA lib
     shadow 'net.java.dev.jna:jna:5.5.0'
@@ -155,7 +160,7 @@ jar {
 
 // Example configuration to allow publishing using the maven-publish task
 // This is the preferred method to reobfuscate your jar file
-jar.finalizedBy('reobfJar') 
+jar.finalizedBy('reobfJar')
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
 //publish.dependsOn('reobfJar')
 
