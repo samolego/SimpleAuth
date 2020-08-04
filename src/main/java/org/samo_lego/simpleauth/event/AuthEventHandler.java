@@ -6,6 +6,7 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.play.server.SChangeBlockPacket;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
@@ -85,7 +86,6 @@ public class AuthEventHandler {
 
             // Teleporting player to the middle of the block
             player.teleport(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-            playerCache.wasInPortal = true;
         }
     }
 
@@ -144,7 +144,15 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerMove(TickEvent.PlayerTickEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.player;
-        if(!isAuthenticated(player) && !config.experimental.allowMovement) {
+        boolean auth = isAuthenticated((ServerPlayerEntity) player);
+        if(!auth && config.main.allowFalling && !player.isOnGround() && !player.isInsideWaterOrBubbleColumn()) {
+            if(player.isInvulnerable())
+                player.setInvulnerable(false);
+        }
+        // Otherwise movement should be disabled
+        else if(!auth && !config.experimental.allowMovement) {
+            if(!player.isInvulnerable())
+                player.setInvulnerable(true);
             player.teleport(player.getX(), player.getY(), player.getZ());
         }
     }
