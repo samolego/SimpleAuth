@@ -1,6 +1,7 @@
 package org.samo_lego.simpleauth.storage;
 
 import com.google.gson.*;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
 
@@ -49,7 +50,7 @@ public class PlayerCache {
 
             // Setting position cache
             this.lastDim = String.valueOf(player.getEntityWorld().getRegistryKey().getValue());
-            this.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
+            this.wasInPortal = player.getBlockState().getBlock().equals(Blocks.field_150427_aO);
             this.lastX = player.getX();
             this.lastY = player.getY();
             this.lastZ = player.getZ();

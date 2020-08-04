@@ -157,7 +157,7 @@ public class SimpleAuth {
 	 * @param player player who will get the message
 	 * @return LiteralText with appropriate string (login or register)
 	 */
-	public static LiteralText notAuthenticated(PlayerEntity player) {
+	public static StringTextComponent notAuthenticated(PlayerEntity player) {
         final PlayerCache cache = deauthenticatedUsers.get(convertUuid(player));
         if(config.main.enableGlobalPassword || cache.isRegistered)
 			return new StringTextComponent(
@@ -174,7 +174,7 @@ public class SimpleAuth {
 	 * @param player player that needs to be authenticated
 	 * @param msg message to be send to the player
 	 */
-	public static void authenticatePlayer(ServerPlayerEntity player, Text msg) {
+	public static void authenticatePlayer(ServerPlayerEntity player, ITextComponent msg) {
 		PlayerCache playerCache = deauthenticatedUsers.get(convertUuid(player));
 		// Teleporting player back
 		if(config.main.spawnOnJoin)
@@ -242,18 +242,6 @@ public class SimpleAuth {
 				}
 			}, config.main.delay * 1000);
 	}
-
-	/**
-	 * Checks whether player is a fake player (from CarpetMod)
-	 *
-	 * @param player player that needs to be checked
-	 * @return true if player is fake, otherwise false
-	 */
-	public static boolean isPlayerFake(PlayerEntity player) {
-		// We ask CarpetHelper class since it has the imports needed
-		return FabricLoader.getInstance().isModLoaded("carpet") && isPlayerCarpetFake(player);
-	}
-
 
 	/**
 	 * Teleports player to spawn or last location that is recorded
