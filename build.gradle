@@ -32,8 +32,8 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 
 version = "${mod_version}"
-group = "${maven_group}.${modid}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "${modid}"
+group = "${maven_group}.${archives_base_name}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "${archives_base_name}"
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -43,7 +43,7 @@ minecraft {
     // stable_#            Stables are built at the discretion of the MCP team.
 
     //mappings channel: 'stable', version: "yarn-${mc_version}"
-    mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-yarn-${mc_version}"
+    mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-yarn-${minecraft_version}"
     //mappings channel: 'snapshot', version: "20200726-yarn-${mc_version}"
 
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
@@ -103,7 +103,7 @@ minecraft {
 
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
 
 	// Password hashing
@@ -137,7 +137,7 @@ reobf {
 
 sourceSets {
     main {
-        ext.refMap =  "${modid}.refmap.json"
+        ext.refMap =  "${archives_base_name}.refmap.json"
     }
 }
 
@@ -145,14 +145,14 @@ sourceSets {
 jar {
     manifest {
         attributes([
-            "Specification-Title": "${modid}",
+            "Specification-Title": "${archives_base_name}",
             "Specification-Vendor": "samo_lego",
             "Specification-Version": "${mod_version}",
             "Implementation-Title": project.name,
             "Implementation-Version": "${version}",
             "Implementation-Vendor" :"samo_lego",
             "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-			"MixinConfigs": "mixins.${modid}.json"
+			"MixinConfigs": "mixins.${archives_base_name}.json"
         ])
     }
 }
