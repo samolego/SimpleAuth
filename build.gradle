@@ -30,6 +30,9 @@ apply plugin: 'maven-publish'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 
+archivesBaseName = project.archives_base_name
+version = "${project.mod_version}-${project.minecraft_version}"
+group = project.maven_group
 
 version = "${mod_version}"
 group = "${maven_group}.${archives_base_name}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html

@@ -6,13 +6,11 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
-import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.utils.AuthHelper;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
-import static org.samo_lego.simpleauth.SimpleAuth.config;
+import static org.samo_lego.simpleauth.SimpleAuth.*;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 public class LoginCommand {
@@ -34,7 +32,7 @@ public class LoginCommand {
         // Getting the player who send the command
         ServerPlayerEntity player = source.getPlayer();
         String uuid = convertUuid(player);
-        if (SimpleAuth.isAuthenticated(player)) {
+        if (isAuthenticated(player)) {
             player.sendMessage(new StringTextComponent(config.lang.alreadyAuthenticated), false);
             return 0;
         }
@@ -43,12 +41,12 @@ public class LoginCommand {
             int maxLoginTries = config.main.maxLoginTries;
             int passwordResult = AuthHelper.checkPass(uuid, pass.toCharArray());
 
-            if(SimpleAuth.deauthenticatedUsers.get(uuid).loginTries >= maxLoginTries && maxLoginTries != -1) {
+            if(playerCacheMap.get(uuid).loginTries >= maxLoginTries && maxLoginTries != -1) {
                 player.networkHandler.disconnect(new StringTextComponent(config.lang.loginTriesExceeded));
                 return;
             }
             else if(passwordResult == 1) {
-                SimpleAuth.authenticatePlayer(player, new StringTextComponent(config.lang.successfullyAuthenticated));
+                authenticatePlayer(player, new StringTextComponent(config.lang.successfullyAuthenticated));
                 return;
             }
             else if(passwordResult == -1) {
@@ -63,7 +61,7 @@ public class LoginCommand {
             // Sending wrong pass message
             player.sendMessage(new StringTextComponent(config.lang.wrongPassword), false);
             // ++ the login tries
-            SimpleAuth.deauthenticatedUsers.get(uuid).loginTries += 1;
+            playerCacheMap.get(uuid).loginTries += 1;
         });
         return 0;
     }

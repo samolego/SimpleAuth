@@ -1,6 +1,5 @@
 package org.samo_lego.simpleauth.commands;
 
-import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.command.CommandSource;
@@ -12,6 +11,9 @@ import org.samo_lego.simpleauth.utils.AuthHelper;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
+import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.server.command.CommandManager.literal;
+import static org.samo_lego.simpleauth.SimpleAuth.*;
 import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
 import static org.samo_lego.simpleauth.SimpleAuth.config;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
@@ -21,33 +23,33 @@ public class AccountCommand {
     public static void registerCommand(CommandDispatcher<CommandSource> dispatcher) {
         // Registering the "/account" command
         dispatcher.register(Commands.literal("account")
-                .then(Commands.literal("unregister")
+            .then(Commands.literal("unregister")
+                .executes(ctx -> {
+                    ctx.getSource().getPlayer().sendMessage(
+                            new StringTextComponent(config.lang.enterPassword),
+                            false
+                    );
+                    return 1;
+                })
+                .then(Commands.argument("password", word())
+                        .executes( ctx -> unregister(
+                                ctx.getSource(),
+                                getString(ctx, "password")
+                                )
+                        )
+                )
+            )
+            .then(Commands.literal("changePassword")
+                .then(Commands.argument("old password", word())
                     .executes(ctx -> {
                         ctx.getSource().getPlayer().sendMessage(
-                                new StringTextComponent(config.lang.enterPassword),
-                                false
-                        );
+                                new StringTextComponent(config.lang.enterNewPassword),
+                                false);
                         return 1;
                     })
-                    .then(Commands.argument("password", word())
-                            .executes( ctx -> unregister(
-                                    ctx.getSource(),
-                                    getString(ctx, "password")
-                                    )
-                            )
-                    )
-                )
-                .then(Commands.literal("changePassword")
-                    .then(Commands.argument("old password", word())
-                        .executes(ctx -> {
-                            ctx.getSource().getPlayer().sendMessage(
-                                    new StringTextComponent(config.lang.enterNewPassword),
-                                    false);
-                            return 1;
-                        })
-                        .then(Commands.argument("new password", word())
-                                .executes( ctx -> changePassword(
-                                        (CommandSource) ctx.getSource(),
+                    .then(Commands.argument("new password", word())
+                            .executes( ctx -> changePassword(
+                                    (CommandSource) ctx.getSource(),
                                         getString(ctx, "old password"),
                                         getString(ctx, "new password")
                                         )
@@ -74,7 +76,7 @@ public class AccountCommand {
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
             if (AuthHelper.checkPass(convertUuid(player), pass.toCharArray()) == 1) {
-                SimpleAuth.DB.deleteUserData(convertUuid(player));
+                DB.deleteUserData(convertUuid(player));
                 player.sendMessage(
                         new StringTextComponent(config.lang.accountDeleted),
                         false
@@ -117,12 +119,8 @@ public class AccountCommand {
                     ), false);
                     return;
                 }
-                // JSON object holding password (may hold some other info in the future)
-                JsonObject playerdata = new JsonObject();
-                String hash = AuthHelper.hashPassword(newPass.toCharArray());
-                playerdata.addProperty("password", hash);
-
-                SimpleAuth.DB.updateUserData(convertUuid(player), playerdata.toString());
+                // Changing password in playercache
+                playerCacheMap.get(convertUuid(player)).password = AuthHelper.hashPassword(newPass.toCharArray());
                 player.sendMessage(
                         new StringTextComponent(config.lang.passwordUpdated),
                         false

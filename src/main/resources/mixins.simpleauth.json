@@ -4,7 +4,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
   "server": [
-    "BlockUpdateS2CPacketAccessor",
+    "MixinPlayerEntity",
     "MixinPlayerManager",
     "MixinSlot"
   ],

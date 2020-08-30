@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.bytes;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logError;
@@ -51,21 +52,23 @@ public class SimpleAuth {
 
 	private static final Timer TIMER = new Timer();
 
-	// HashMap of players that are not authenticated
-	// Rather than storing all the authenticated players, we just store ones that are not authenticated
-	// It stores some data as well, e.g. login tries and user password
-	public static HashMap<String, PlayerCache> deauthenticatedUsers = new HashMap<>();
+	/**
+	 * HashMap of players that have joined the server.
+	 * It's cleared on server stop in order to save some interactions with database during runtime.
+	 * Stores their data as {@link org.samo_lego.simpleauth.storage.PlayerCache PlayerCache} object
+	 */
+	public static HashMap<String, PlayerCache> playerCacheMap = new HashMap<>();
 
 	/**
-	 * Checks whether player is authenticated
-	 * Fake players always count as authenticated
+	 * Checks whether player is authenticated.
+	 * Fake players always count as authenticated.
 	 *
 	 * @param player player that needs to be checked
-	 * @return false if player is de-authenticated, otherwise false
+	 * @return false if player is not authenticated, otherwise true
 	 */
 	public static boolean isAuthenticated(ServerPlayerEntity player) {
 		String uuid = convertUuid(player);
-		return !deauthenticatedUsers.containsKey(uuid) || deauthenticatedUsers.get(uuid).wasAuthenticated;
+		return playerCacheMap.containsKey(uuid) && playerCacheMap.get(uuid).isAuthenticated;
 	}
 
 	// Getting game directory
@@ -118,13 +121,16 @@ public class SimpleAuth {
 		AuthCommand.registerCommand(dispatcher);
 	}
 
+	/**
+	 * Called on server stop.
+	 */
 	@SubscribeEvent
 	public void onStopServer(FMLServerStoppedEvent event) {
 		logInfo("Shutting down SimpleAuth.");
 
 		WriteBatch batch = DB.getLevelDBStore().createWriteBatch();
-		// Writing coords of de-authenticated players to database
-		deauthenticatedUsers.forEach((uuid, playerCache) -> {
+		// Updating player data.
+		playerCacheMap.forEach((uuid, playerCache) -> {
 			JsonObject data = new JsonObject();
 			data.addProperty("password", playerCache.password);
 
@@ -146,19 +152,33 @@ public class SimpleAuth {
 			logError("Error saving player data! " + e.getMessage());
 		}
 
-		// Closing DB connection
+		// Closing threads
+		try {
+            THREADPOOL.shutdownNow();
+			TIMER.cancel();
+			TIMER.purge();
+            if (!THREADPOOL.awaitTermination(100, TimeUnit.MICROSECONDS)) {
+                System.out.println("Still waiting...");
+				Thread.currentThread().interrupt();
+            }
+        } catch (InterruptedException e) {
+		    logError(e.getMessage());
+			THREADPOOL.shutdownNow();
+        }
+
+        // Closing DB connection
 		DB.close();
 	}
 
 	/**
 	 * Gets the text which tells the player
-	 * to login or register, depending on account status
+	 * to login or register, depending on account status.
 	 *
 	 * @param player player who will get the message
 	 * @return LiteralText with appropriate string (login or register)
 	 */
 	public static StringTextComponent notAuthenticated(PlayerEntity player) {
-        final PlayerCache cache = deauthenticatedUsers.get(convertUuid(player));
+        final PlayerCache cache = playerCacheMap.get(convertUuid(player));
         if(config.main.enableGlobalPassword || cache.isRegistered)
 			return new StringTextComponent(
 			        config.lang.notAuthenticated + "\n" + config.lang.loginRequired
@@ -169,13 +189,13 @@ public class SimpleAuth {
 	}
 
 	/**
-	 * Authenticates player and sends the success message
+	 * Authenticates player and sends the success message.
 	 *
 	 * @param player player that needs to be authenticated
 	 * @param msg message to be send to the player
 	 */
 	public static void authenticatePlayer(ServerPlayerEntity player, ITextComponent msg) {
-		PlayerCache playerCache = deauthenticatedUsers.get(convertUuid(player));
+		PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
 		// Teleporting player back
 		if(config.main.spawnOnJoin)
 			teleportPlayer(player, false);
@@ -199,7 +219,7 @@ public class SimpleAuth {
 		if(!playerCache.wasOnFire)
 			player.setFireTicks(0);
 
-		deauthenticatedUsers.remove(convertUuid(player));
+		playerCache.isAuthenticated = true;
 
 		// Player no longer needs to be invisible and invulnerable
 		player.setInvulnerable(false);
@@ -208,7 +228,7 @@ public class SimpleAuth {
 	}
 
 	/**
-	 * De-authenticates the player
+	 * De-authenticates the player.
 	 *
 	 * @param player player that needs to be de-authenticated
 	 */
@@ -218,7 +238,8 @@ public class SimpleAuth {
 
 		// Marking player as not authenticated
 		String uuid = convertUuid(player);
-		deauthenticatedUsers.put(uuid, new PlayerCache(uuid, player));
+		playerCacheMap.put(uuid, new PlayerCache(uuid, player));
+		playerCacheMap.get(uuid).isAuthenticated = false;
 
 		// Teleporting player to spawn to hide its position
 		if(config.main.spawnOnJoin)
@@ -240,12 +261,12 @@ public class SimpleAuth {
 					if(!isAuthenticated(player) && player.networkHandler.getConnection().isOpen())
 						player.networkHandler.disconnect(new StringTextComponent(config.lang.timeExpired));
 				}
-			}, config.main.delay * 1000);
+			}, config.main.kickTime * 1000);
 	}
 
 	/**
-	 * Teleports player to spawn or last location that is recorded
-	 * Last location means the location before de-authentication
+	 * Teleports player to spawn or last location that is recorded.
+	 * Last location means the location before de-authentication.
 	 *
 	 * @param player player that needs to be teleported
 	 * @param toSpawn whether to teleport player to spawn (provided in config) or last recorded position
@@ -268,7 +289,7 @@ public class SimpleAuth {
 			);
 			return;
 		}
-		PlayerCache cache = deauthenticatedUsers.get(convertUuid(player));
+		PlayerCache cache = playerCacheMap.get(convertUuid(player));
 		// Puts player to last cached position
 		try {
 			player.teleport(

@@ -38,28 +38,27 @@ public class AuthEventHandler {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
         // Checking if session is still valid
         String uuid = convertUuid(player);
-        PlayerCache playerCache = deauthenticatedUsers.getOrDefault(uuid, null);
+        PlayerCache playerCache = playerCacheMap.getOrDefault(uuid, null);
 
         if (playerCache != null) {
             if (
-                playerCache.wasAuthenticated &&
+                playerCache.isAuthenticated &&
                 playerCache.validUntil >= System.currentTimeMillis() &&
                 player.getIp().equals(playerCache.lastIp)
             ) {
                 authenticatePlayer(player, null); // Makes player authenticated
                 return;
             }
-            // Ugly fix for #13
             player.setInvulnerable(config.experimental.playerInvulnerable);
             player.setInvisible(config.experimental.playerInvisible);
 
             // Invalidating session
-            playerCache.wasAuthenticated = false;
+            playerCache.isAuthenticated = false;
             player.sendMessage(notAuthenticated(player), false);
         }
         else {
             deauthenticatePlayer(player);
-            playerCache = deauthenticatedUsers.get(uuid);
+            playerCache = playerCacheMap.get(uuid);
             playerCache.wasOnFire = false;
         }
 
@@ -73,40 +72,47 @@ public class AuthEventHandler {
         if(config.main.tryPortalRescue && player.getBlockState().getBlock().equals(Blocks.field_150427_aO)) {
             BlockPos pos = player.getBlockPos();
 
-            // Faking portal blocks to be air
-            SChangeBlockPacket feetPacket = new SChangeBlockPacket();
-            ((BlockUpdateS2CPacketAccessor) feetPacket).setState(Blocks.field_150350_a.getDefaultState());
-            ((BlockUpdateS2CPacketAccessor) feetPacket).setBlockPos(pos);
-            player.networkHandler.sendPacket(feetPacket);
-
-            SChangeBlockPacket headPacket = new SChangeBlockPacket();
-            ((BlockUpdateS2CPacketAccessor) headPacket).setState(Blocks.field_150350_a.getDefaultState());
-            ((BlockUpdateS2CPacketAccessor) headPacket).setBlockPos(pos.up());
-            player.networkHandler.sendPacket(headPacket);
-
             // Teleporting player to the middle of the block
             player.teleport(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+
+            // Faking portal blocks to be air
+            BlockUpdateS2CPacket feetPacket = new BlockUpdateS2CPacket(pos, Blocks.AIR.getDefaultState());
+            player.networkHandler.sendPacket(feetPacket);
+
+            BlockUpdateS2CPacket headPacket = new BlockUpdateS2CPacket(pos.up(), Blocks.AIR.getDefaultState());
+            player.networkHandler.sendPacket(headPacket);
         }
     }
 
     @SubscribeEvent(priority = HIGHEST)
-    public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
+    public static void onPlayerLeave(ServerPlayerEntity player) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-        if(!isAuthenticated(player) || config.main.sessionTimeoutTime == -1)
+        if(isPlayerFake(player))
             return;
 
         // Starting session
         // Putting player to deauthenticated player map
         deauthenticatePlayer(player);
-        
+
         // Setting that player was actually authenticated before leaving
         PlayerCache playerCache = deauthenticatedUsers.get(convertUuid(player));
         if(playerCache == null)
             return;
+        String uuid = convertUuid(player);
+        PlayerCache playerCache = playerCacheMap.get(uuid);
 
-        playerCache.wasAuthenticated = true;
+        playerCache.lastIp = player.getIp();
+        playerCache.lastAir = player.getAir();
+        playerCache.wasOnFire = player.isOnFire();
+        playerCache.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
+        playerCache.lastDim = String.valueOf(player.getEntityWorld().getRegistryKey().getValue());
+        playerCache.lastX = player.getX();
+        playerCache.lastY = player.getY();
+        playerCache.lastZ = player.getZ();
+
         // Setting the session expire time
-        playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000;
+        if(isAuthenticated(player) && config.main.sessionTimeoutTime != -1)
+            playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000;
     }
 
     // Player chatting

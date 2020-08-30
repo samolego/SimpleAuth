@@ -1,19 +1,17 @@
 package org.samo_lego.simpleauth.commands;
 
-import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
-import org.samo_lego.simpleauth.SimpleAuth;
-import org.samo_lego.simpleauth.utils.AuthHelper;
+import org.samo_lego.simpleauth.storage.PlayerCache;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
-import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
-import static org.samo_lego.simpleauth.SimpleAuth.config;
+import static org.samo_lego.simpleauth.SimpleAuth.*;
+import static org.samo_lego.simpleauth.utils.AuthHelper.hashPassword;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 
@@ -40,7 +38,7 @@ public class RegisterCommand {
             player.sendMessage(new StringTextComponent(config.lang.loginRequired), false);
             return 0;
         }
-        else if(SimpleAuth.isAuthenticated(player)) {
+        else if(isAuthenticated(player)) {
             player.sendMessage(new StringTextComponent(config.lang.alreadyAuthenticated), false);
             return 0;
         }
@@ -62,13 +60,12 @@ public class RegisterCommand {
                 ), false);
                 return;
             }
-            String hash = AuthHelper.hashPassword(pass1.toCharArray());
-            // JSON object holding password (may hold some other info in the future)
-            JsonObject playerdata = new JsonObject();
-            playerdata.addProperty("password", hash);
 
-            if (SimpleAuth.DB.registerUser(convertUuid(player), playerdata.toString())) {
-                SimpleAuth.authenticatePlayer(player, new StringTextComponent(config.lang.registerSuccess));
+            PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
+            if (!playerCache.isRegistered) {
+                authenticatePlayer(player, new StringTextComponent(config.lang.registerSuccess));
+                playerCache.password = hashPassword(pass1.toCharArray());
+                playerCache.isRegistered = true;
                 return;
             }
             player.sendMessage(new StringTextComponent(config.lang.alreadyRegistered), false);
