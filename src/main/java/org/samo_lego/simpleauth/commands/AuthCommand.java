@@ -3,8 +3,8 @@ package org.samo_lego.simpleauth.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
-import net.minecraft.command.argument.BlockPosArgument;
-import net.minecraft.command.argument.DimensionArgument;
+import net.minecraft.command.arguments.BlockPosArgument;
+import net.minecraft.command.arguments.DimensionArgument;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
@@ -31,7 +31,7 @@ public class AuthCommand {
         dispatcher.register(Commands.literal("auth")
             .requires(source -> source.hasPermissionLevel(4))
             .then(Commands.literal("reload")
-                .executes( ctx -> reloadConfig((CommandSource) ctx.getSource().getEntity()))
+                .executes( ctx -> reloadConfig(ctx.getSource().getEntity()))
             )
             .then(Commands.literal("setGlobalPassword")
                     .then(Commands.argument("password", word())
@@ -243,7 +243,7 @@ public class AuthCommand {
             playerCacheMap.put(uuid, playerCache);
             if(!playerCacheMap.get(uuid).isRegistered) {
                 if (sender != null)
-                    ((PlayerEntity) sender).sendMessage(new LiteralText(config.lang.userNotRegistered), false);
+                    ((PlayerEntity) sender).sendMessage(new StringTextComponent(config.lang.userNotRegistered), false);
                 else
                     logInfo(config.lang.userNotRegistered);
                 return;

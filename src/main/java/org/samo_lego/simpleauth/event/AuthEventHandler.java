@@ -6,7 +6,6 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.play.server.SChangeBlockPacket;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
@@ -18,7 +17,6 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.samo_lego.simpleauth.mixin.BlockUpdateS2CPacketAccessor;
 import org.samo_lego.simpleauth.storage.PlayerCache;
 
 import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
@@ -69,37 +67,30 @@ public class AuthEventHandler {
         // Tries to rescue player from nether portal
         //field_150427_aO --> NETHER_PORTAL
         //field_150350_a --> AIR
-        if(config.main.tryPortalRescue && player.getBlockState().getBlock().equals(Blocks.field_150427_aO)) {
+        if(config.main.tryPortalRescue && player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL)) {
             BlockPos pos = player.getBlockPos();
 
             // Teleporting player to the middle of the block
             player.teleport(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
 
             // Faking portal blocks to be air
-            BlockUpdateS2CPacket feetPacket = new BlockUpdateS2CPacket(pos, Blocks.AIR.getDefaultState());
+            SChangeBlockPacket feetPacket = new SChangeBlockPacket(pos, Blocks.AIR.getDefaultState());
             player.networkHandler.sendPacket(feetPacket);
 
-            BlockUpdateS2CPacket headPacket = new BlockUpdateS2CPacket(pos.up(), Blocks.AIR.getDefaultState());
+            SChangeBlockPacket headPacket = new SChangeBlockPacket(pos.up(), Blocks.AIR.getDefaultState());
             player.networkHandler.sendPacket(headPacket);
         }
     }
 
     @SubscribeEvent(priority = HIGHEST)
-    public static void onPlayerLeave(ServerPlayerEntity player) {
+    public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-        if(isPlayerFake(player))
-            return;
-
-        // Starting session
-        // Putting player to deauthenticated player map
-        deauthenticatePlayer(player);
 
         // Setting that player was actually authenticated before leaving
-        PlayerCache playerCache = deauthenticatedUsers.get(convertUuid(player));
+        PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
         if(playerCache == null)
             return;
         String uuid = convertUuid(player);
-        PlayerCache playerCache = playerCacheMap.get(uuid);
 
         playerCache.lastIp = player.getIp();
         playerCache.lastAir = player.getAir();
@@ -159,7 +150,7 @@ public class AuthEventHandler {
         else if(!auth && !config.experimental.allowMovement) {
             if(!player.isInvulnerable())
                 player.setInvulnerable(true);
-            player.teleport(player.getX(), player.getY(), player.getZ());
+            player.networkHandler.requestTeleport(player.getX(), player.getY(), player.getZ(), player.yaw, player.pitch);
         }
     }
 

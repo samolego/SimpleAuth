@@ -1,7 +1,7 @@
 # Simple Authentication Mod
 
 [![License](https://img.shields.io/github/license/samolego/simpleauth.svg)](https://github.com/samolego/SimpleAuth/blob/master/LICENSE)
-[![Fabric CI](https://github.com/samolego/SimpleAuth/workflows/Fabric%20CI/badge.svg)](https://samolego.github.io/projects/ci/SimpleAuth/latest)
+[![Forge CI](https://github.com/samolego/SimpleAuth/workflows/Forge%20CI/badge.svg)](https://github.com/samolego/SimpleAuth/actions?query=workflow%3A%22Forge+CI%22)
 [![Version](https://img.shields.io/github/v/tag/samolego/SimpleAuth.svg?label=version)](https://github.com/samolego/SimpleAuth/releases/latest)
 [![Closed Issues](https://img.shields.io/github/issues-closed/samolego/simpleauth.svg)](https://github.com/samolego/SimpleAuth/issues?q=is%3Aissue+is%3Aclosed)
 [![Curseforge downloads](http://cf.way2muchnoise.eu/full_simpleauth_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/simpleauth)

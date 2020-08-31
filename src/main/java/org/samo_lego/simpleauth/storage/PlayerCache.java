@@ -68,7 +68,7 @@ public class PlayerCache {
 
             // Setting position cache
             this.lastDim = String.valueOf(player.getEntityWorld().getRegistryKey().getValue());
-            this.wasInPortal = player.getBlockState().getBlock().equals(Blocks.field_150427_aO);
+            this.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
             this.lastX = player.getX();
             this.lastY = player.getY();
             this.lastZ = player.getZ();

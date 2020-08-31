@@ -35,7 +35,7 @@ public abstract class MixinPlayerManager {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(incomingPlayerUsername);
 
-        if(onlinePlayer != null && config.experimental.disableAnotherLocationKick) {
+        if(onlinePlayer != null && config.experimental.preventAnotherLocationKick) {
             // Player needs to be kicked, since there's already a player with that name
             // playing on the server
             cir.setReturnValue(new StringTextComponent(

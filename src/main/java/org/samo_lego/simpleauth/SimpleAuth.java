@@ -278,9 +278,8 @@ public class SimpleAuth {
 
 		if (toSpawn) {
 			// Teleports player to spawn
-			//field_239699_ae_ --> DIMENSION
 			player.teleport(
-					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(config.worldSpawn.dimension)))),
+					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.DIMENSION, new ResourceLocation(config.worldSpawn.dimension)))),
 					config.worldSpawn.x,
 					config.worldSpawn.y,
 					config.worldSpawn.z,
@@ -293,7 +292,7 @@ public class SimpleAuth {
 		// Puts player to last cached position
 		try {
 			player.teleport(
-					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.field_239699_ae_, new ResourceLocation(cache.lastDim)))),
+					Objects.requireNonNull(server.getWorld(RegistryKey.of(Registry.DIMENSION, new ResourceLocation(cache.lastDim)))),
 					cache.lastX,
 					cache.lastY,
 					cache.lastZ,

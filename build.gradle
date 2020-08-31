@@ -27,6 +27,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
+// For JIJ
 apply plugin: 'com.github.johnrengelman.shadow'
 
 
