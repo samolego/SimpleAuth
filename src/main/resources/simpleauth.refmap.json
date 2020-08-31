@@ -5,10 +5,6 @@
     },
     "org/samo_lego/simpleauth/mixin/MixinSlot": {
       "canTakeItems": "func_82869_a(Lnet/minecraft/entity/player/PlayerEntity;)Z"
-    },
-    "org/samo_lego/simpleauth/mixin/BlockUpdateS2CPacketAccessor": {
-      "state": "field_197686_b",
-      "pos": "field_179828_a"
     }
   }
 }

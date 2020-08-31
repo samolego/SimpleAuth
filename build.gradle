@@ -32,12 +32,8 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 
 archivesBaseName = project.archives_base_name
-version = "${project.mod_version}-${project.minecraft_version}"
+version = "${project.mod_version}-${project.minecraft_version}_forge"
 group = project.maven_group
-
-version = "${mod_version}"
-group = "${maven_group}.${archives_base_name}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "${archives_base_name}"
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -55,22 +51,6 @@ minecraft {
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
-        client {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                simpleauth {
-                    source sourceSets.main
-                }
-            }
-        }
-
         server {
             workingDirectory project.file('run')
 			arg "-mixin.config=mixins."+archivesBaseName+".json"
@@ -145,15 +125,14 @@ sourceSets {
     }
 }
 
-// Example for how to get properties into the manifest for reading by the runtime..
 jar {
     manifest {
         attributes([
-            "Specification-Title": "${archives_base_name}",
+            "Specification-Title": archives_base_name,
             "Specification-Vendor": "samo_lego",
-            "Specification-Version": "${mod_version}",
+            "Specification-Version": version,
             "Implementation-Title": project.name,
-            "Implementation-Version": "${version}",
+            "Implementation-Version": version,
             "Implementation-Vendor" :"samo_lego",
             "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
 			"MixinConfigs": "mixins.${archives_base_name}.json"
