@@ -158,7 +158,6 @@ public class SimpleAuth {
 			TIMER.cancel();
 			TIMER.purge();
             if (!THREADPOOL.awaitTermination(100, TimeUnit.MICROSECONDS)) {
-                System.out.println("Still waiting...");
 				Thread.currentThread().interrupt();
             }
         } catch (InterruptedException e) {
