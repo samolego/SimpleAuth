@@ -120,7 +120,7 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerCommand(CommandEvent event) throws CommandSyntaxException {
         try {
-            String name = event.getParseResults().getContext().getNodes().get(0).getNode().getName();
+            String name = event.getResult().name();
             CommandSource src = event.getParseResults().getContext().getSource();
 
             if(src.getEntity() instanceof ServerPlayerEntity) {
@@ -188,7 +188,7 @@ public class AuthEventHandler {
         PlayerEntity player = event.getPlayer();
         if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemUse) {
             player.sendMessage(notAuthenticated(player), false);
-            //fail
+            event.setCanceled(true);
         }
     }
 
