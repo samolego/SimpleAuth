@@ -73,7 +73,7 @@ public class AccountCommand {
 
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
-            if (AuthHelper.checkPass(convertUuid(player), pass.toCharArray()) == 1) {
+            if (AuthHelper.checkPassword(convertUuid(player), pass.toCharArray()) == 1) {
                 DB.deleteUserData(convertUuid(player));
                 player.sendMessage(
                         new StringTextComponent(config.lang.accountDeleted),
@@ -104,7 +104,7 @@ public class AccountCommand {
         }
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
-            if (AuthHelper.checkPass(convertUuid(player), oldPass.toCharArray()) == 1) {
+            if (AuthHelper.checkPassword(convertUuid(player), oldPass.toCharArray()) == 1) {
                 if (newPass.length() < config.main.minPasswordChars) {
                     player.sendMessage(new StringTextComponent(
                             String.format(config.lang.minPasswordChars, config.main.minPasswordChars)
