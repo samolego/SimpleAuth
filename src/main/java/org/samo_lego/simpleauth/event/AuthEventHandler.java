@@ -120,7 +120,7 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerCommand(CommandEvent event) throws CommandSyntaxException {
         try {
-            String name = event.getResult().name();
+            String name = event.getParseResults().getContext().getNodes().get(0).getNode().getName();
             CommandSource src = event.getParseResults().getContext().getSource();
 
             if(src.getEntity() instanceof ServerPlayerEntity) {
