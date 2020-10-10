@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.bytes;
+import static org.samo_lego.simpleauth.utils.CarpetHelper.isPlayerCarpetFake;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logError;
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logInfo;
 import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
