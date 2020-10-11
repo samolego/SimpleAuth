@@ -15,7 +15,7 @@
     "successfulLogout": "§aВы вышли.",
     "timeExpired": "§cВремя для авторизации истекло.",
     "registerRequired": "§6Введите /register \u003cпароль\u003e \u003cпароль\u003e для регистрации.",
-    "alreadyRegistered": "§6Этот аккаунт уже зарегистрирован!",
+    "alreadyRegistered": "§6Этот игрок уже зарегистрирован!",
     "registerSuccess": "§aВы авторизованы.",
     "userdataDeleted": "§aПользовательские данные удалены.",
     "userdataUpdated": "§aПользовательские данные обновлены.",
