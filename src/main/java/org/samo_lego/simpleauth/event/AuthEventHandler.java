@@ -18,10 +18,11 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.samo_lego.simpleauth.storage.PlayerCache;
+import org.samo_lego.simpleauth.utils.PlayerAuth;
 
 import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
-import static org.samo_lego.simpleauth.SimpleAuth.*;
-import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
+import static org.samo_lego.simpleauth.SimpleAuth.config;
+import static org.samo_lego.simpleauth.SimpleAuth.playerCacheMap;
 
 /**
  * This class will take care of actions players try to do,
@@ -35,7 +36,7 @@ public class AuthEventHandler {
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
         // Checking if session is still valid
-        String uuid = convertUuid(player);
+        String uuid = ((PlayerAuth) player).getFakeUuid();
         PlayerCache playerCache = playerCacheMap.getOrDefault(uuid, null);
 
         if (playerCache != null) {
@@ -44,7 +45,7 @@ public class AuthEventHandler {
                 playerCache.validUntil >= System.currentTimeMillis() &&
                 player.getIp().equals(playerCache.lastIp)
             ) {
-                authenticatePlayer(player, null); // Makes player authenticated
+                ((PlayerAuth) player).setAuthenticated(true);
                 return;
             }
             player.setInvulnerable(config.experimental.playerInvulnerable);
@@ -52,16 +53,14 @@ public class AuthEventHandler {
 
             // Invalidating session
             playerCache.isAuthenticated = false;
-            player.sendMessage(notAuthenticated(player), false);
+            if(config.main.spawnOnJoin)
+                ((PlayerAuth) player).hidePosition(true);
         }
         else {
-            deauthenticatePlayer(player);
+            ((PlayerAuth) player).setAuthenticated(false);
             playerCache = playerCacheMap.get(uuid);
             playerCache.wasOnFire = false;
         }
-
-        if(config.main.spawnOnJoin)
-            teleportPlayer(player, true);
 
 
         // Tries to rescue player from nether portal
@@ -90,20 +89,21 @@ public class AuthEventHandler {
         PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
         if(playerCache == null)
             return;
-        String uuid = convertUuid(player);
+        String uuid = ((PlayerAuth) player).getFakeUuid();
 
-        playerCache.lastIp = player.getIp();
-        playerCache.lastAir = player.getAir();
-        playerCache.wasOnFire = player.isOnFire();
-        playerCache.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
-        playerCache.lastDim = String.valueOf(player.getEntityWorld().getRegistryKey().getValue());
-        playerCache.lastX = player.getX();
-        playerCache.lastY = player.getY();
-        playerCache.lastZ = player.getZ();
+        if(((PlayerAuth) player).isAuthenticated()) {
+            playerCache.lastIp = player.getIp();
+            playerCache.lastAir = player.getAir();
+            playerCache.wasOnFire = player.isOnFire();
+            playerCache.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
 
-        // Setting the session expire time
-        if(isAuthenticated(player) && config.main.sessionTimeoutTime != -1)
-            playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000;
+            // Setting the session expire time
+            if(config.main.sessionTimeoutTime != -1)
+                playerCache.validUntil = System.currentTimeMillis() + config.main.sessionTimeoutTime * 1000;
+        }
+        else {
+            ((PlayerAuth) player).hidePosition(false);
+        }
     }
 
     // Player chatting
@@ -111,7 +111,7 @@ public class AuthEventHandler {
     public static void onPlayerChat(ServerChatEvent event) {
         ServerPlayerEntity player = event.getPlayer();
         if(!isAuthenticated(player) && !config.experimental.allowChat) {
-            player.sendMessage(notAuthenticated(player), false);
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }
@@ -141,7 +141,7 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerMove(TickEvent.PlayerTickEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.player;
-        boolean auth = isAuthenticated((ServerPlayerEntity) player);
+        boolean auth = ((PlayerAuth) player).isAuthenticated();
         if(!auth && config.main.allowFalling && !player.isOnGround() && !player.isInsideWaterOrBubbleColumn()) {
             if(player.isInvulnerable())
                 player.setInvulnerable(false);
@@ -166,8 +166,8 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onUseBlock(PlayerInteractEvent.RightClickBlock event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowBlockUse) {
-            player.sendMessage(notAuthenticated(player), false);
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowBlockUse) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }
@@ -176,8 +176,8 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onAttackBlock(PlayerInteractEvent.LeftClickBlock event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowBlockPunch) {
-            player.sendMessage(notAuthenticated(player), false);
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowBlockPunch) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }
@@ -186,8 +186,8 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onUseItem(PlayerInteractEvent.RightClickItem event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemUse) {
-            player.sendMessage(notAuthenticated(player), false);
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowItemUse) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }
@@ -196,8 +196,8 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onDropItem(ItemTossEvent event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowItemDrop) {
-            player.sendMessage(notAuthenticated(player), false);
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowItemDrop) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
             player.inventory.insertStack(event.getEntityItem().getStack());
         }
@@ -207,8 +207,8 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onAttackEntity(AttackEntityEvent event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowEntityPunch) {
-            player.sendMessage(notAuthenticated(player), false);
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowEntityPunch) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }
@@ -216,8 +216,8 @@ public class AuthEventHandler {
     // Interacting with entity
     @SubscribeEvent(priority = HIGHEST)
     public static void onUseEntity(PlayerInteractEvent.EntityInteract event) {
-        PlayerEntity player = event.getPlayer();        if(!isAuthenticated((ServerPlayerEntity) player) && !config.main.allowEntityInteract) {
-            player.sendMessage(notAuthenticated(player), false);
+        PlayerEntity player = event.getPlayer();        if(!((PlayerAuth) player).isAuthenticated() && !config.main.allowEntityInteract) {
+            player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
     }

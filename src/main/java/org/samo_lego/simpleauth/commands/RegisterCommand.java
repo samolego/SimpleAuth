@@ -7,12 +7,12 @@ import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.storage.PlayerCache;
+import org.samo_lego.simpleauth.utils.PlayerAuth;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import static org.samo_lego.simpleauth.SimpleAuth.*;
 import static org.samo_lego.simpleauth.utils.AuthHelper.hashPassword;
-import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 
 public class RegisterCommand {
@@ -38,7 +38,7 @@ public class RegisterCommand {
             player.sendMessage(new StringTextComponent(config.lang.loginRequired), false);
             return 0;
         }
-        else if(isAuthenticated(player)) {
+        else if(((PlayerAuth) player).isAuthenticated()) {
             player.sendMessage(new StringTextComponent(config.lang.alreadyAuthenticated), false);
             return 0;
         }
@@ -61,9 +61,10 @@ public class RegisterCommand {
                 return;
             }
 
-            PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
+            PlayerCache playerCache = playerCacheMap.get(((PlayerAuth) player).getFakeUuid());
             if (!playerCache.isRegistered) {
-                authenticatePlayer(player, new StringTextComponent(config.lang.registerSuccess));
+                ((PlayerAuth) player).setAuthenticated(true);
+                player.sendMessage(new StringTextComponent(config.lang.registerSuccess), false);
                 playerCache.password = hashPassword(pass1.toCharArray());
                 playerCache.isRegistered = true;
                 return;

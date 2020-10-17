@@ -3,7 +3,14 @@ package org.samo_lego.simpleauth.storage;
 import com.google.gson.*;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.registry.RegistryKey;
+
+import java.util.Objects;
 
 import static org.samo_lego.simpleauth.SimpleAuth.DB;
 import static org.samo_lego.simpleauth.SimpleAuth.config;
@@ -50,10 +57,15 @@ public class PlayerCache {
     /**
      * Last recorded position before de-authentication.
      */
-    public String lastDim;
-    public double lastX;
-    public double lastY;
-    public double lastZ;
+    public static class LastLocation {
+        public ServerWorld dimension;
+        public Vec3d position;
+        public float yaw;
+        public float pitch;
+    }
+
+    public PlayerCache.LastLocation lastLocation = new PlayerCache.LastLocation();
+
 
     private static final Gson gson = new Gson();
 
@@ -63,18 +75,19 @@ public class PlayerCache {
 
         if(player != null) {
             if(config.experimental.debugMode)
-                logInfo("Creating cache for " + player.getName());
+                logInfo("Creating cache for " + player.getName().asString());
             this.lastIp = player.getIp();
 
             this.lastAir = player.getAir();
             this.wasOnFire = player.isOnFire();
 
             // Setting position cache
-            this.lastDim = String.valueOf(player.getEntityWorld().getRegistryKey().getValue());
+            this.lastLocation.dimension = player.getServerWorld();
+            this.lastLocation.position = player.getPos();
+            this.lastLocation.yaw = player.yaw;
+            this.lastLocation.pitch = player.pitch;
+
             this.wasInPortal = player.getBlockState().getBlock().equals(Blocks.NETHER_PORTAL);
-            this.lastX = player.getX();
-            this.lastY = player.getY();
-            this.lastZ = player.getZ();
         }
         else {
             this.wasOnFire = false;
@@ -99,25 +112,29 @@ public class PlayerCache {
             }
             else {
                 this.password = passwordElement.getAsString();
-                this.isRegistered = true;
+                this.isRegistered = !this.password.isEmpty();
             }
 
 
-            // We should check the DB for saved coords
+            // DEPRECATED, UGLY
             if(config.main.spawnOnJoin) {
                 try {
                     JsonElement lastLoc = json.get("lastLocation");
                     if (lastLoc != null) {
                         // Getting DB coords
                         JsonObject lastLocation = gson.fromJson(lastLoc.getAsString(), JsonObject.class);
-                        this.lastDim = lastLocation.get("dim").isJsonNull() ? config.worldSpawn.dimension : lastLocation.get("dim").getAsString();
-                        this.lastX = lastLocation.get("x").isJsonNull() ? config.worldSpawn.x : lastLocation.get("x").getAsDouble();
-                        this.lastY = lastLocation.get("y").isJsonNull() ? config.worldSpawn.y : lastLocation.get("y").getAsDouble();
-                        this.lastZ = lastLocation.get("z").isJsonNull() ? config.worldSpawn.z : lastLocation.get("z").getAsDouble();
+                        assert player != null;
+                        this.lastLocation.dimension = Objects.requireNonNull(player.getServer()).getWorld(RegistryKey.of(Registry.DIMENSION, new Identifier(
+                                lastLocation.get("dim").isJsonNull() ? config.worldSpawn.dimension : lastLocation.get("dim").getAsString())));
 
-                        // Removing location data from DB
-                        json.remove("lastLocation");
-                        DB.updateUserData(uuid, json.toString());
+                        this.lastLocation.position = new Vec3d(
+                                lastLocation.get("x").isJsonNull() ? config.worldSpawn.x : lastLocation.get("x").getAsDouble(),
+                                lastLocation.get("y").isJsonNull() ? config.worldSpawn.y : lastLocation.get("y").getAsDouble(),
+                                lastLocation.get("z").isJsonNull() ? config.worldSpawn.z : lastLocation.get("z").getAsDouble()
+                        );
+                        this.lastLocation.yaw = lastLocation.get("yaw") == null ? 90 : lastLocation.get("yaw").getAsFloat();
+                        this.lastLocation.pitch = lastLocation.get("pitch") == null ? 0 : lastLocation.get("pitch").getAsFloat();
+
                     }
                 } catch (JsonSyntaxException ignored) {
                     // Player didn't have any coords in db to tp to
@@ -130,7 +147,8 @@ public class PlayerCache {
         }
         this.isAuthenticated = false;
         this.loginTries = 0;
+
         if(config.experimental.debugMode)
-            logInfo("Cache created. Registered: " + this.isRegistered + ", hashed password: " + this.password);
+            logInfo("Cache created. Registered: " + this.isRegistered + ", hashed password: " + this.password + ".");
     }
 }

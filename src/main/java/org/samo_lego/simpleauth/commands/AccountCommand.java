@@ -8,6 +8,7 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
 import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.utils.AuthHelper;
+import org.samo_lego.simpleauth.utils.PlayerAuth;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
@@ -73,13 +74,10 @@ public class AccountCommand {
 
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
-            if (AuthHelper.checkPassword(convertUuid(player), pass.toCharArray()) == 1) {
-                DB.deleteUserData(convertUuid(player));
-                player.sendMessage(
-                        new StringTextComponent(config.lang.accountDeleted),
-                        false
-                );
-                SimpleAuth.deauthenticatePlayer(player);
+            if (AuthHelper.checkPassword(((PlayerAuth) player).getFakeUuid(), pass.toCharArray()) == 1) {
+                DB.deleteUserData(((PlayerAuth) player).getFakeUuid());
+                player.sendMessage(new StringTextComponent(config.lang.accountDeleted), false);
+                ((PlayerAuth) player).setAuthenticated(false);
                 return;
             }
             player.sendMessage(
@@ -104,7 +102,7 @@ public class AccountCommand {
         }
         // Different thread to avoid lag spikes
         THREADPOOL.submit(() -> {
-            if (AuthHelper.checkPassword(convertUuid(player), oldPass.toCharArray()) == 1) {
+            if (AuthHelper.checkPassword(((PlayerAuth) player).getFakeUuid(), oldPass.toCharArray()) == 1) {
                 if (newPass.length() < config.main.minPasswordChars) {
                     player.sendMessage(new StringTextComponent(
                             String.format(config.lang.minPasswordChars, config.main.minPasswordChars)
@@ -118,7 +116,7 @@ public class AccountCommand {
                     return;
                 }
                 // Changing password in playercache
-                playerCacheMap.get(convertUuid(player)).password = AuthHelper.hashPassword(newPass.toCharArray());
+                playerCacheMap.get(((PlayerAuth) player).getFakeUuid()).password = AuthHelper.hashPassword(newPass.toCharArray());
                 player.sendMessage(
                         new StringTextComponent(config.lang.passwordUpdated),
                         false

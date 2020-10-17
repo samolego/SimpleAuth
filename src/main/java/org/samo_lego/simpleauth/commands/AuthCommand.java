@@ -5,6 +5,7 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.command.arguments.BlockPosArgument;
 import net.minecraft.command.arguments.DimensionArgument;
+import net.minecraft.command.argument.RotationArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
@@ -47,17 +48,23 @@ public class AuthCommand {
                         ctx.getSource().getEntityOrThrow().getEntityWorld().getRegistryKey().getValue(),
                         ctx.getSource().getEntityOrThrow().getX(),
                         ctx.getSource().getEntityOrThrow().getY(),
-                        ctx.getSource().getEntityOrThrow().getZ()
+                        ctx.getSource().getEntityOrThrow().getZ(),
+                        ctx.getSource().getEntityOrThrow().yaw,
+                        ctx.getSource().getEntityOrThrow().pitch
                     ))
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                             .then(Commands.argument("position", BlockPosArgument.blockPos())
-                                .executes(ctx -> setSpawn(
-                                        ctx.getSource(),
-                                        DimensionArgument.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue(),
-                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getX(),
-                                        // +1 to not spawn player in ground
-                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getY() + 1,
-                                        BlockPosArgument.getLoadedBlockPos(ctx, "position").getZ()
+                                .then(argument("angle", RotationArgumentType.rotation())
+                                    .executes(ctx -> setSpawn(
+                                            ctx.getSource(),
+                                            DimensionArgument.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue(),
+                                            BlockPosArgument.getLoadedBlockPos(ctx, "position").getX(),
+                                            // +1 to not spawn player in ground
+                                            BlockPosArgument.getLoadedBlockPos(ctx, "position").getY() + 1,
+                                            BlockPosArgument.getLoadedBlockPos(ctx, "position").getZ(),
+                                            RotationArgumentType.getRotation(ctx, "angle").toAbsoluteRotation(ctx.getSource()).y,
+                                            RotationArgumentType.getRotation(ctx, "angle").toAbsoluteRotation(ctx.getSource()).x
+                                    )
                                 )
                             )
                         )
@@ -145,6 +152,8 @@ public class AuthCommand {
      * @param x x coordinate of the global spawn
      * @param y y coordinate of the global spawn
      * @param z z coordinate of the global spawn
+     * @param yaw player yaw (y rotation)
+     * @param pitch player pitch (x rotation)
      * @return 0
      */
     private static int setSpawn(CommandSource source, ResourceLocation world, double x, double y, double z) {
@@ -153,6 +162,8 @@ public class AuthCommand {
         config.worldSpawn.x = x;
         config.worldSpawn.y = y;
         config.worldSpawn.z = z;
+        config.worldSpawn.yaw = yaw;
+        config.worldSpawn.pitch = pitch;
         config.main.spawnOnJoin = true;
         config.save(new File("./mods/SimpleAuth/config.json"));
 

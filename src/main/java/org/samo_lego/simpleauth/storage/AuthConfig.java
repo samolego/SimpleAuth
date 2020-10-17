@@ -86,22 +86,24 @@ public class AuthConfig {
         public boolean allowFalling = false;
 
         /**
-         * Whether to tp player to spawn when joining (to hide coordinates)
+         * Whether to tp player to spawn when joining (to hide original player coordinates)
          */
         public boolean spawnOnJoin =  false;
 
         /**
-         * Data for spawn (where deauthenticated players are teleported).
+         * Data for spawn (where deauthenticated players are teleported temporarily).
          * @see <a href="https://github.com/samolego/SimpleAuth/wiki/Coordinate-Hiding" target="_blank">wiki</a>
          */
         public static class WorldSpawn {
-                /**
-                 * Dimension id, e.g. "minecraft:overworld"
-                 */
-                public String dimension;
-                public double x;
-                public double y;
-                public double z;
+            /**
+             * Dimension id, e.g. "minecraft:overworld"
+             */
+            public String dimension;
+            public double x;
+            public double y;
+            public double z;
+            public float yaw;
+            public float pitch;
         }
     }
     public static class LangConfig {
