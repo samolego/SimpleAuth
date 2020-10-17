@@ -110,7 +110,7 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerChat(ServerChatEvent event) {
         ServerPlayerEntity player = event.getPlayer();
-        if(!isAuthenticated(player) && !config.experimental.allowChat) {
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowChat) {
             player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }
@@ -126,7 +126,7 @@ public class AuthEventHandler {
             if(src.getEntity() instanceof ServerPlayerEntity) {
                 ServerPlayerEntity player = src.getPlayer();
                 if(
-                        !isAuthenticated(player) &&
+                        !((PlayerAuth) player).isAuthenticated() &&
                                 !name.startsWith("login") &&
                                 !name.startsWith("register")
                 ) {

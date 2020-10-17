@@ -173,17 +173,6 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
     }
 
     /**
-     * Checks whether player is a fake player (from CarpetMod).
-     *
-     * @return true if player is fake (can skip authentication process), otherwise false
-     */
-    @Override
-    public boolean canSkipAuth() {
-        // We ask CarpetHelper class since it has the imports needed
-        return this.isRunningCarpet && isPlayerCarpetFake(this.player);
-    }
-
-    /**
      * Checks whether player is authenticated.
      *
      * @return false if player is not authenticated, otherwise true.
@@ -208,25 +197,6 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
                 kickTimer--;
             }
             ci.cancel();
-        }
-    }
-
-    // Player item dropping
-    @Inject(method = "dropSelectedItem(Z)Z", at = @At("HEAD"), cancellable = true)
-    private void dropSelectedItem(boolean dropEntireStack, CallbackInfoReturnable<Boolean> cir) {
-        ServerPlayerEntity player = (ServerPlayerEntity) (Object) this;
-        ActionResult result = DropItemCallback.EVENT.invoker().onDropItem(player);
-
-        if (result == ActionResult.FAIL) {
-            // Canceling the item drop, as well as giving the items back to player (and updating inv with packet)
-            player.networkHandler.sendPacket(
-                    new ScreenHandlerSlotUpdateS2CPacket(
-                            -2,
-                            player.inventory.selectedSlot,
-                            player.inventory.getStack(player.inventory.selectedSlot))
-            );
-            player.networkHandler.sendPacket(new ScreenHandlerSlotUpdateS2CPacket(-1, -1, player.inventory.getCursorStack()));
-            cir.setReturnValue(false);
         }
     }
 }
