@@ -1,31 +1,25 @@
 package org.samo_lego.simpleauth.mixin;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Identifier;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 import org.samo_lego.simpleauth.SimpleAuth;
-import org.samo_lego.simpleauth.event.item.DropItemCallback;
 import org.samo_lego.simpleauth.storage.PlayerCache;
 import org.samo_lego.simpleauth.utils.PlayerAuth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static org.samo_lego.simpleauth.SimpleAuth.config;
 import static org.samo_lego.simpleauth.SimpleAuth.playerCacheMap;
-import static org.samo_lego.simpleauth.utils.CarpetHelper.isPlayerCarpetFake;
 
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity implements PlayerAuth {
@@ -34,8 +28,6 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
 
     // * 20 for 20 ticks in second
     private int kickTimer = config.main.kickTime * 20;
-
-    private final boolean isRunningCarpet = FabricLoader.getInstance().isModLoaded("carpet");
 
     private final MinecraftServer server = player.getServer();
 
@@ -59,7 +51,7 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
 
             // Teleports player to spawn
             player.teleport(
-                    server.getWorld(RegistryKey.of(Registry.DIMENSION, new Identifier(config.worldSpawn.dimension))),
+                    server.getWorld(RegistryKey.of(Registry.DIMENSION, new ResourceLocation(config.worldSpawn.dimension))),
                     config.worldSpawn.x,
                     config.worldSpawn.y,
                     config.worldSpawn.z,
@@ -160,13 +152,13 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
      * @return LiteralText with appropriate string (login or register)
      */
     @Override
-    public Text getAuthMessage() {
-        final PlayerCache cache = playerCacheMap.get(((PlayerAuth) player).getFakeUuid());
+    public ITextComponent getAuthMessage() {
+        final PlayerCache cache = playerCacheMap.get(this.getFakeUuid());
         if(SimpleAuth.config.main.enableGlobalPassword || cache.isRegistered)
-            return new LiteralText(
+            return new StringTextComponent(
                     SimpleAuth.config.lang.notAuthenticated + "\n" + SimpleAuth.config.lang.loginRequired
             );
-        return new LiteralText(
+        return new StringTextComponent(
                 SimpleAuth.config.lang.notAuthenticated+ "\n" + SimpleAuth.config.lang.registerRequired
         );
     }
@@ -178,16 +170,16 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
      */
     @Override
     public boolean isAuthenticated() {
-        String uuid = ((PlayerAuth) player).getFakeUuid();
+        String uuid = this.getFakeUuid();
         return playerCacheMap.containsKey(uuid) && playerCacheMap.get(uuid).isAuthenticated;
     }
 
-    @Inject(method = "tick()V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tick()V", at = @At("HEAD"), cancellable = true, remap = false)
     private void tick(CallbackInfo ci) {
         if(!this.isAuthenticated()) {
             // Checking player timer
             if(kickTimer <= 0 && player.networkHandler.getConnection().isOpen()) {
-                player.networkHandler.disconnect(new LiteralText(config.lang.timeExpired));
+                player.networkHandler.disconnect(new StringTextComponent(config.lang.timeExpired));
             }
             else {
                 // Sending authentication prompt every 10 seconds

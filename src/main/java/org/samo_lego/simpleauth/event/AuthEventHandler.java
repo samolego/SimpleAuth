@@ -21,8 +21,7 @@ import org.samo_lego.simpleauth.storage.PlayerCache;
 import org.samo_lego.simpleauth.utils.PlayerAuth;
 
 import static net.minecraftforge.eventbus.api.EventPriority.HIGHEST;
-import static org.samo_lego.simpleauth.SimpleAuth.config;
-import static org.samo_lego.simpleauth.SimpleAuth.playerCacheMap;
+import static org.samo_lego.simpleauth.SimpleAuth.*;
 
 /**
  * This class will take care of actions players try to do,
@@ -86,7 +85,7 @@ public class AuthEventHandler {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
 
         // Setting that player was actually authenticated before leaving
-        PlayerCache playerCache = playerCacheMap.get(convertUuid(player));
+        PlayerCache playerCache = playerCacheMap.get(((PlayerAuth) player).getFakeUuid());
         if(playerCache == null)
             return;
         String uuid = ((PlayerAuth) player).getFakeUuid();
@@ -130,7 +129,7 @@ public class AuthEventHandler {
                                 !name.startsWith("login") &&
                                 !name.startsWith("register")
                 ) {
-                    player.sendMessage(notAuthenticated(player), false);
+                    player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
                     event.setCanceled(true);
                 }
             }
@@ -157,7 +156,7 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onContainerOpen(PlayerContainerEvent.Open event) {
         PlayerEntity player = event.getPlayer();
-        if(!isAuthenticated((ServerPlayerEntity) player) && !config.experimental.allowMovement) {
+        if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowMovement) {
             event.setCanceled(true);
         }
     }
@@ -216,7 +215,8 @@ public class AuthEventHandler {
     // Interacting with entity
     @SubscribeEvent(priority = HIGHEST)
     public static void onUseEntity(PlayerInteractEvent.EntityInteract event) {
-        PlayerEntity player = event.getPlayer();        if(!((PlayerAuth) player).isAuthenticated() && !config.main.allowEntityInteract) {
+        PlayerEntity player = event.getPlayer();
+        if(!((PlayerAuth) player).isAuthenticated() && !config.main.allowEntityInteract) {
             player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
             event.setCanceled(true);
         }

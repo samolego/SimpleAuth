@@ -3,12 +3,13 @@ package org.samo_lego.simpleauth.storage;
 import com.google.gson.*;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 
 import java.util.Objects;
 
@@ -26,7 +27,7 @@ public class PlayerCache {
     public boolean isRegistered;
     /**
      * Whether player is authenticated.
-     * Used for {@link org.samo_lego.simpleauth.event.AuthEventHandler#onPlayerJoin(ServerPlayerEntity) session validation}.
+     * Used for {@link org.samo_lego.simpleauth.event.AuthEventHandler#onPlayerJoin(PlayerEvent.PlayerLoggedInEvent) session validation}.
      */
     public boolean isAuthenticated;
     /**
@@ -39,7 +40,7 @@ public class PlayerCache {
     public int loginTries;
     /**
      * Last recorded IP of player.
-     * Used for {@link org.samo_lego.simpleauth.event.AuthEventHandler#onPlayerJoin(ServerPlayerEntity) sessions}.
+     * Used for {@link org.samo_lego.simpleauth.event.AuthEventHandler#onPlayerJoin(PlayerEvent.PlayerLoggedInEvent) sessions}.
      */
     public String lastIp;
     /**
@@ -59,7 +60,7 @@ public class PlayerCache {
      */
     public static class LastLocation {
         public ServerWorld dimension;
-        public Vec3d position;
+        public Vector3d position;
         public float yaw;
         public float pitch;
     }
@@ -121,13 +122,13 @@ public class PlayerCache {
                 try {
                     JsonElement lastLoc = json.get("lastLocation");
                     if (lastLoc != null) {
-                        // Getting DB coords
+                        /* Getting DB coords */
                         JsonObject lastLocation = gson.fromJson(lastLoc.getAsString(), JsonObject.class);
                         assert player != null;
-                        this.lastLocation.dimension = Objects.requireNonNull(player.getServer()).getWorld(RegistryKey.of(Registry.DIMENSION, new Identifier(
+                        this.lastLocation.dimension = Objects.requireNonNull(player.getServer()).getWorld(RegistryKey.of(Registry.DIMENSION, new ResourceLocation(
                                 lastLocation.get("dim").isJsonNull() ? config.worldSpawn.dimension : lastLocation.get("dim").getAsString())));
 
-                        this.lastLocation.position = new Vec3d(
+                        this.lastLocation.position = new Vector3d(
                                 lastLocation.get("x").isJsonNull() ? config.worldSpawn.x : lastLocation.get("x").getAsDouble(),
                                 lastLocation.get("y").isJsonNull() ? config.worldSpawn.y : lastLocation.get("y").getAsDouble(),
                                 lastLocation.get("z").isJsonNull() ? config.worldSpawn.z : lastLocation.get("z").getAsDouble()

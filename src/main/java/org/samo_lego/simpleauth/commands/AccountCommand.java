@@ -6,16 +6,12 @@ import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
-import org.samo_lego.simpleauth.SimpleAuth;
 import org.samo_lego.simpleauth.utils.AuthHelper;
 import org.samo_lego.simpleauth.utils.PlayerAuth;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import static org.samo_lego.simpleauth.SimpleAuth.*;
-import static org.samo_lego.simpleauth.SimpleAuth.THREADPOOL;
-import static org.samo_lego.simpleauth.SimpleAuth.config;
-import static org.samo_lego.simpleauth.utils.UuidConverter.convertUuid;
 
 public class AccountCommand {
 

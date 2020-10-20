@@ -3,9 +3,9 @@ package org.samo_lego.simpleauth.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
+import net.minecraft.command.arguments.AngleArgument;
 import net.minecraft.command.arguments.BlockPosArgument;
 import net.minecraft.command.arguments.DimensionArgument;
-import net.minecraft.command.argument.RotationArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
@@ -54,7 +54,7 @@ public class AuthCommand {
                     ))
                     .then(Commands.argument("dimension", DimensionArgument.dimension())
                             .then(Commands.argument("position", BlockPosArgument.blockPos())
-                                .then(argument("angle", RotationArgumentType.rotation())
+                                .then(Commands.argument("angle", AngleArgument.angle())
                                     .executes(ctx -> setSpawn(
                                             ctx.getSource(),
                                             DimensionArgument.getDimensionArgument(ctx, "dimension").getRegistryKey().getValue(),
@@ -62,8 +62,8 @@ public class AuthCommand {
                                             // +1 to not spawn player in ground
                                             BlockPosArgument.getLoadedBlockPos(ctx, "position").getY() + 1,
                                             BlockPosArgument.getLoadedBlockPos(ctx, "position").getZ(),
-                                            RotationArgumentType.getRotation(ctx, "angle").toAbsoluteRotation(ctx.getSource()).y,
-                                            RotationArgumentType.getRotation(ctx, "angle").toAbsoluteRotation(ctx.getSource()).x
+                                            AngleArgument.getAngle(ctx, "angle"),
+                                            AngleArgument.getAngle(ctx, "angle")
                                     )
                                 )
                             )
@@ -156,7 +156,7 @@ public class AuthCommand {
      * @param pitch player pitch (x rotation)
      * @return 0
      */
-    private static int setSpawn(CommandSource source, ResourceLocation world, double x, double y, double z) {
+    private static int setSpawn(CommandSource source, ResourceLocation world, double x, double y, double z, float yaw, float pitch) {
         // Setting config values and saving
         config.worldSpawn.dimension = String.valueOf(world);
         config.worldSpawn.x = x;

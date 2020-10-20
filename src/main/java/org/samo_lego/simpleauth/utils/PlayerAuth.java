@@ -1,6 +1,6 @@
 package org.samo_lego.simpleauth.utils;
 
-import net.minecraft.text.Text;
+import net.minecraft.util.text.ITextComponent;
 
 /**
  * PLayer authentication extension.
@@ -49,7 +49,7 @@ public interface PlayerAuth {
      * @return LiteralText with appropriate string (login or register)
      * @see <a href="https://samolego.github.io/SimpleAuth/org/samo_lego/simpleauth/mixin/MixinPlayerEntity.html">See implementation</a>
      */
-    Text getAuthMessage();
+    ITextComponent getAuthMessage();
 
     /**
      * Checks whether player is a fake player (from CarpetMod).
