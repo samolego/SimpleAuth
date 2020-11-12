@@ -11,7 +11,7 @@
     "cannotUnregister": "§c¡No puedes dar de baja esta cuenta!",
     "notAuthenticated": "§c¡No estás autenticado!\n§6Intenta con /login o /register.",
     "alreadyAuthenticated": "§6Ahora estás autenticado.",
-    "successfullyAuthenticated": "§aNo estás autenticado.",
+    "successfullyAuthenticated": "§aTe has autenticado.",
     "successfulLogout": "§aCerraste sesión correctamente.",
     "timeExpired": "§cEl tiempo de autenticación ha expirado.",
     "registerRequired": "§6Escribe /register \u003ccontraseña\u003e \u003ccontraseña\u003e para reclamar esta cuenta.",
