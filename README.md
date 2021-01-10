@@ -5,6 +5,7 @@
 [![Version](https://img.shields.io/github/v/tag/samolego/SimpleAuth.svg?label=version)](https://github.com/samolego/SimpleAuth/releases/latest)
 [![Closed Issues](https://img.shields.io/github/issues-closed/samolego/simpleauth.svg)](https://github.com/samolego/SimpleAuth/issues?q=is%3Aissue+is%3Aclosed)
 [![Curseforge downloads](http://cf.way2muchnoise.eu/full_simpleauth_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/simpleauth)
+[![Discord](https://img.shields.io/discord/797713290545332235)](https://discord.gg/PNPjqA4Aw6)
 
 [<img src="https://i.imgur.com/Ol1Tcf8.png" alt="Requires Fabric API." width="200px" href="https://www.curseforge.com/minecraft/mc-mods/fabric-api">](https://www.curseforge.com/minecraft/mc-mods/fabric-api)
 
