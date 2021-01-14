@@ -44,7 +44,7 @@ minecraft {
 
     //mappings channel: 'stable', version: "yarn-${minecraft_version}"
     //mappings channel: 'snapshot', version: "${new Date().format("yyyyMMdd")}-yarn-${minecraft_version}"
-    mappings channel: 'snapshot', version: "20201012-yarn-${minecraft_version}"
+    mappings channel: 'snapshot', version: "${mc_mappings}-yarn-${minecraft_version_mappings}"
 
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 
