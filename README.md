@@ -14,3 +14,4 @@ Thank you so much for those who have already helped with translation of the mod!
 * @alphatoasterous (Russian)
 * @Neubulae (Chinese)
 * @Zailer43 (Spanish)
+* @Kljunas2 (Slovene)
