@@ -16,10 +16,14 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ExtensionPoint;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.network.FMLNetworkConstants;
+import org.apache.commons.lang3.tuple.Pair;
 import org.iq80.leveldb.WriteBatch;
 import org.samo_lego.simpleauth.commands.*;
 import org.samo_lego.simpleauth.storage.AuthConfig;
@@ -31,6 +35,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,6 +64,12 @@ public class SimpleAuth {
 	 */
 	public static HashMap<String, PlayerCache> playerCacheMap = new HashMap<>();
 
+	/**
+	 * HashSet of player names that have Mojang accounts.
+	 * If player is saved in here, they will be treated as online-mode ones.
+	 */
+	public static final HashSet<String> mojangAccountNamesCache = new HashSet<>();
+
 	// Getting game directory
 	public static final Path gameDirectory = FMLPaths.GAMEDIR.get();
 
@@ -75,6 +86,8 @@ public class SimpleAuth {
 
 	@SubscribeEvent
 	public void onInitializeServer(FMLServerAboutToStartEvent event) {
+
+		ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.DISPLAYTEST, () -> Pair.of(() -> FMLNetworkConstants.IGNORESERVERONLY, (a, b) -> true));
 		// Info I guess :D
 		logInfo("SimpleAuth mod by samo_lego.");
 		// The support on discord was great! I really appreciate your help.

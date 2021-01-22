@@ -22,6 +22,8 @@ import com.google.gson.GsonBuilder;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.samo_lego.simpleauth.utils.SimpleLogger.logError;
 
@@ -105,6 +107,28 @@ public class AuthConfig {
             public float yaw;
             public float pitch;
         }
+
+        /**
+         * Whether players who have a valid session should skip the authentication process.
+         * You have to set online-mode to true in server.properties!
+         * (cracked players will still be able to enter, but they'll need to login)
+         *
+         * This protects premium usernames from being stolen, since cracked players
+         * with name that is found in Mojang database, are kicked.
+         */
+        public boolean premiumAutologin = false;
+
+        /**
+         * Contains a list of lower case (!) player names
+         * that should always be treated as offline.
+         *
+         * Used when  AuthConfig#premiumAutoLogin is enabled
+         * and you have some players that want to use username,
+         * that is already taken.
+         */
+        public ArrayList<String> forcedOfflinePlayers = new ArrayList<>(Arrays.asList(
+                ""
+        ));
     }
     public static class LangConfig {
         public String enterPassword = "§6You need to enter your password!";

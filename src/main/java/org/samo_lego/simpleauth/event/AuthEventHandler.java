@@ -34,10 +34,11 @@ public class AuthEventHandler {
     @SubscribeEvent(priority = HIGHEST)
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
+        if (((PlayerAuth) player).canSkipAuth())
+            return;
         // Checking if session is still valid
         String uuid = ((PlayerAuth) player).getFakeUuid();
         PlayerCache playerCache = playerCacheMap.getOrDefault(uuid, null);
-
         if (playerCache != null) {
             if (
                 playerCache.isAuthenticated &&

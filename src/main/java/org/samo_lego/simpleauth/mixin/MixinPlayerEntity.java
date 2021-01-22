@@ -18,8 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static org.samo_lego.simpleauth.SimpleAuth.config;
-import static org.samo_lego.simpleauth.SimpleAuth.playerCacheMap;
+import static org.samo_lego.simpleauth.SimpleAuth.*;
 
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity implements PlayerAuth {
@@ -92,6 +91,11 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
         String playername = player.getName().asString().toLowerCase();
         return PlayerEntity.getOfflinePlayerUuid(playername).toString();
 
+    }
+
+    @Override
+    public boolean canSkipAuth() {
+        return (isUsingMojangAccount() && config.main.premiumAutologin);
     }
 
     /**
@@ -171,10 +175,10 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
     @Override
     public boolean isAuthenticated() {
         String uuid = this.getFakeUuid();
-        return playerCacheMap.containsKey(uuid) && playerCacheMap.get(uuid).isAuthenticated;
+        return this.canSkipAuth() || playerCacheMap.containsKey(uuid) && playerCacheMap.get(uuid).isAuthenticated;
     }
 
-    @Inject(method = "tick", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void tick(CallbackInfo ci) {
         if(!this.isAuthenticated()) {
             // Checking player timer
@@ -189,5 +193,10 @@ public abstract class MixinPlayerEntity implements PlayerAuth {
             }
             ci.cancel();
         }
+    }
+
+    @Override
+    public boolean isUsingMojangAccount() {
+        return mojangAccountNamesCache.contains(player.getGameProfile().getName().toLowerCase());
     }
 }

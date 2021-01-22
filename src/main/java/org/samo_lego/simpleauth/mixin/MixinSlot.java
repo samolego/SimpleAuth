@@ -13,7 +13,7 @@ import static org.samo_lego.simpleauth.SimpleAuth.config;
 @Mixin(Slot.class)
 public abstract class MixinSlot {
     // Denying item moving etc.
-    @Inject(method = "canTakeItems", at = @At(value = "HEAD"), cancellable = true, remap = false)
+    @Inject(method = "canTakeItems", at = @At(value = "HEAD"), cancellable = true)
     private void canTakeItems(PlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
         if(!((PlayerAuth) player).isAuthenticated() && !config.experimental.allowItemMoving) {
             player.sendMessage(((PlayerAuth) player).getAuthMessage(), false);
