@@ -6,7 +6,11 @@
   "server": [
     "MixinPlayerEntity",
     "MixinPlayerManager",
-    "MixinSlot"
+    "MixinSlot",
+    "MixinPlayerAdvancementTracker",
+    "MixinWorldSaveHandler",
+    "MixinServerLoginNetworkHandler",
+    "ServerStatHandlerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
