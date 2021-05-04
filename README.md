@@ -16,3 +16,4 @@ Thank you so much for those who have already helped with translation of the mod!
 * @Zailer43 (Spanish)
 * @Kljunas2 (Slovene)
 * @Bendimester23 (Hungarian)
+* @luizffgv (Brazilian Portuguese)
